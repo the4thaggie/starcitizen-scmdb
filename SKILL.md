@@ -1,5 +1,7 @@
 # starcitizen-scmdb
 
+> **Reference:** [Design Document](DesignDoc.md) — architecture, data sources, pipeline, and script specs.
+
 Answers Star Citizen questions about missions, crafting blueprints, and mining using patch-versioned data from SCMDB.net.
 
 **Data patch:** read `data/VERSION` before any query. Cite the patch in every answer.

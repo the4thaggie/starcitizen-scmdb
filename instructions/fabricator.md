@@ -1,5 +1,7 @@
 # Fabricator Subskill — Workflow
 
+> [Design Doc §7](../DesignDoc.md#7-subskill-fabricator) · also loads: [missions.md](missions.md) · [resources.md](resources.md)
+
 Handles: blueprint lookup, faction unlock requirements, material costs, quality-to-stat tables.
 Often the entry point that then hands off to missions.md (grind) and resources.md (mining).
 

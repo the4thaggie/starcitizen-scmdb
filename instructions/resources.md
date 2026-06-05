@@ -1,5 +1,7 @@
 # Resources Subskill — Workflow
 
+> [Design Doc §9](../DesignDoc.md#9-subskill-resources) · called from: [fabricator.md](fabricator.md) · escalates to: [mining_solver/index.md](mining_solver/index.md)
+
 Handles: mining location lookup, material availability by system, crack difficulty, and route planning.
 
 ---

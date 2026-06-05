@@ -1,5 +1,7 @@
 # Mining Solver — Math Reference
 
+> [Design Doc §10](../../DesignDoc.md#10-subskill-mining-solver) · back to: [index.md](index.md)
+
 Load this file when the user asks *why* a stat is what it is, or needs to understand the
 underlying mechanics (e.g., "why is my window so narrow?", "what does instability actually do?").
 

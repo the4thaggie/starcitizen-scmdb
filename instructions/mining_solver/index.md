@@ -1,5 +1,7 @@
 # Mining Solver Subskill — Entry Point
 
+> [Design Doc §10](../../DesignDoc.md#10-subskill-mining-solver) · math: [math.md](math.md) · formats: [output_formats.md](output_formats.md)
+
 Handles: laser selection, module configuration, rock crackability, net stats, loadout recommendations.
 If math is requested, also load `math.md`. For final formatted output, also load `output_formats.md`.
 

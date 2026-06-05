@@ -1,5 +1,7 @@
 # Missions Subskill — Workflow
 
+> [Design Doc §8](../DesignDoc.md#8-subskill-missions) · called from: [fabricator.md](fabricator.md)
+
 Handles: mission grinding, rep planning, rank path planning, mission filtering.
 
 ---

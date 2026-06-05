@@ -1,5 +1,7 @@
 # Mining Solver — Output Formats
 
+> [Design Doc §10](../../DesignDoc.md#10-subskill-mining-solver) · back to: [index.md](index.md)
+
 Load this file when formatting a final loadout recommendation or stats summary for the user.
 
 ---
