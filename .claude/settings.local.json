@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init *)",
+      "Bash(git remote *)",
+      "Bash(gh repo *)",
+      "Bash(git branch *)",
+      "Bash(git ls-remote *)",
+      "Bash(git fetch *)",
+      "Bash(git reset *)",
+      "Bash(pdftotext /home/hermes/projects/starcitizen-scmdb/\"Star Citizen APIs.pdf\" -)",
+      "Bash(pip install *)",
+      "Bash(python3 -c ' *)",
+      "Bash(pip3 install *)",
+      "Bash(ls /home/hermes/.claude/remote/plugins/855c907a1c649459/skills/pdf/scripts/)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__read_page",
+      "mcp__Claude_in_Chrome__read_network_requests",
+      "mcp__Claude_in_Chrome__javascript_tool",
+      "mcp__Claude_in_Chrome__read_console_messages",
+      "Bash(python3 scripts/query/blueprint_materials.py --name \"Yeager\")",
+      "Bash(python3 scripts/query/mission_grind_plan.py --faction \"Covalex\" --current-rep 50 --target-tier \"Master\" --system Stanton --ship Prospector --party-size 1)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(f'  [{t[\\\\\"from_tier\\\\\"]:20}→{t[\\\\\"to_tier\\\\\"]:20}] {t[\\\\\"runs_needed\\\\\"]:4} runs  best={t[\\\\\"best_mission\\\\\"][\\\\\"title\\\\\"][:40] if t[\\\\\"best_mission\\\\\"] else \\\\\"none\\\\\"}'\\) for t in d['tiers']]; print\\(f'TOTAL: {d[\\\\\"total_runs\\\\\"]} runs, ~{d[\\\\\"total_est_hours\\\\\"]}h'\\)\")",
+      "Bash(git add *)"
+    ]
+  }
+}

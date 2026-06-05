@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$comment": "TODO: define after first SCMDB resources scrape",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id": { "type": "string" },
+      "name": { "type": "string" },
+      "type": { "type": "string", "enum": ["planet", "space", "moon"] },
+      "danger_level": { "type": "string" },
+      "mining_type": { "type": "array", "items": { "type": "string" } },
+      "ship_mining": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "material": { "type": "string" },
+            "chance_pct": { "type": "number" },
+            "quality_range": { "type": "string" },
+            "difficulty": { "type": "string" },
+            "quality_score": { "type": "integer", "minimum": 0, "maximum": 1000 }
+          },
+          "required": ["material", "chance_pct", "quality_score"]
+        }
+      }
+    },
+    "required": ["id", "name"]
+  }
+}

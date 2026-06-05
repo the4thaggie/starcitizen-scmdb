@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Denormalized mission records derived from SCMDB merged-<version>.json",
+  "type": "object",
+  "properties": {
+    "version": { "type": "string", "example": "4.8.1-live.11875683" },
+    "count": { "type": "integer" },
+    "legacyCount": { "type": "integer" },
+    "missions": { "type": "array", "items": { "$ref": "#/definitions/mission" } },
+    "legacyMissions": { "type": "array", "items": { "$ref": "#/definitions/mission" } }
+  },
+  "definitions": {
+    "location": {
+      "type": "object",
+      "properties": {
+        "name":   { "type": ["string", "null"] },
+        "type":   { "type": ["string", "null"], "examples": ["Station", "Outpost", "Planet", "Moon", "Destination"] },
+        "system": { "type": ["string", "null"], "examples": ["Stanton", "Pyro", "Nyx"] },
+        "planet": { "type": ["string", "null"] },
+        "moon":   { "type": ["string", "null"] }
+      }
+    },
+    "standing": {
+      "type": "object",
+      "properties": {
+        "name":          { "type": "string", "examples": ["Neutral", "Jr. Contractor", "Veteran Guild Member"] },
+        "minReputation": { "type": ["integer", "null"] }
+      }
+    },
+    "repGain": {
+      "type": "object",
+      "properties": {
+        "faction": { "type": ["string", "null"] },
+        "amount":  { "type": ["integer", "null"] }
+      }
+    },
+    "mission": {
+      "type": "object",
+      "required": ["id", "title", "missionType", "systems", "rewardUEC"],
+      "properties": {
+        "id":                    { "type": "string", "format": "uuid" },
+        "title":                 { "type": ["string", "null"] },
+        "description":           { "type": ["string", "null"] },
+        "faction":               { "type": ["string", "null"] },
+        "category":              { "type": ["string", "null"], "enum": ["career", "story", null] },
+        "missionType":           { "type": ["string", "null"], "examples": ["Delivery", "Bounty Hunter", "Mercenary", "Salvage"] },
+        "systems":               { "type": "array", "items": { "type": "string" } },
+        "illegal":               { "type": "boolean" },
+        "canBeShared":           { "type": "boolean" },
+        "rewardUEC":             { "type": "integer" },
+        "timeToCompleteMinutes": { "type": ["integer", "null"] },
+        "estUECPerHour":         { "type": ["integer", "null"], "description": "rewardUEC / timeToCompleteMinutes * 60" },
+        "factionRepGain":        { "type": "array", "items": { "$ref": "#/definitions/repGain" } },
+        "estRepPerHour":         { "type": ["integer", "null"] },
+        "minStanding":           { "$ref": "#/definitions/standing", "type": ["object", "null"] },
+        "maxStanding":           { "$ref": "#/definitions/standing", "type": ["object", "null"] },
+        "prerequisites":         { "type": "array", "items": { "type": "object" }, "description": "Location prerequisites (e.g. must be at a specific station)" },
+        "locations":             { "type": "array", "items": { "$ref": "#/definitions/location" }, "description": "Pickup locations" },
+        "destinations":          { "type": "array", "items": { "$ref": "#/definitions/location" }, "description": "Delivery / destination locations" },
+        "onceOnly":              { "type": "boolean" },
+        "maxPlayersPerInstance": { "type": ["integer", "null"] },
+        "hasPersonalCooldown":   { "type": "boolean" },
+        "personalCooldownMinutes": { "type": ["integer", "null"] },
+        "isChain":               { "type": "boolean", "description": "Part of a multi-step chain mission" },
+        "parentId":              { "type": ["string", "null"], "format": "uuid" },
+        "shipEncounters":        { "type": ["object", "null"], "description": "Combat encounter config; non-null means combat is expected" },
+        "haulingOrderCount":     { "type": ["integer", "null"] },
+        "availableInPrison":     { "type": "boolean" }
+      }
+    }
+  }
+}

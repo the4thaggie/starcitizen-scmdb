@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$comment": "TODO: define after first SCMDB mining solver scrape",
+  "definitions": {
+    "laser": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "module_slots": { "type": "integer" },
+        "base_power": { "type": "number" },
+        "base_range": { "type": "number" },
+        "stats": { "type": "object" }
+      },
+      "required": ["id", "name", "module_slots"]
+    },
+    "module": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["passive", "active"] },
+        "charges": { "type": "integer" },
+        "stat_modifiers": { "type": "object" }
+      },
+      "required": ["id", "name", "type"]
+    },
+    "ship": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "laser_hardpoints": { "type": "integer" },
+        "cargo_scu": { "type": "number" }
+      },
+      "required": ["id", "name", "laser_hardpoints"]
+    }
+  },
+  "type": "object",
+  "properties": {
+    "lasers": { "type": "array", "items": { "$ref": "#/definitions/laser" } },
+    "modules": { "type": "array", "items": { "$ref": "#/definitions/module" } },
+    "ships": { "type": "array", "items": { "$ref": "#/definitions/ship" } }
+  }
+}
