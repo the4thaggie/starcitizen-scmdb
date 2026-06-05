@@ -1,0 +1,47 @@
+{
+  "_note": "All element coordinates are fractions (0.0–1.0) of the *MobiGlas panel crop*, not the full screen. The parser locates the panel using _mobiglas constants before applying these values. Works for any 16:9 or wider aspect ratio; see _mobiglas for the geometry model.",
+
+  "_mobiglas": {
+    "_note": "MobiGlas panel geometry relative to the game content area. The panel is height-proportional and horizontally centered; ultrawide displays show more background on the sides. These constants were derived from patch 4.8 at 1920×1080 and should be stable across aspect ratios. Re-derive if CIG changes UI scale defaults.",
+    "height_frac_of_content": 0.752,
+    "top_frac_of_content":    0.081,
+    "width_to_height_ratio":  2.030
+  },
+
+  "reputation": {
+    "_calibration_status": "CALIBRATED — MobiGlas-relative. Validated at 16:9 1920×1080 (patch 4.8). Run calibrate.py to verify at other resolutions.",
+
+    "faction_title": {
+      "_note": "Large heading: active faction name (upper-left of right panel, e.g. 'ADAGIO HOLDINGS')",
+      "x": 0.335, "y": 0.144, "w": 0.208, "h": 0.049
+    },
+
+    "relationship": {
+      "_note": "Green sub-label directly below faction title (e.g. 'ALLY', 'NEUTRAL', 'ENEMY')",
+      "x": 0.337, "y": 0.190, "w": 0.058, "h": 0.033
+    },
+
+    "standing": {
+      "_note": "Rank cells stacked under the STANDING header. Each cell has a thin progress bar at the TOP of the cell, then the rank label text centred below it.",
+      "label_x": 0.337,
+      "label_w": 0.173,
+      "label_y_offset_within_row": 0.30,
+      "label_h_within_row":        0.55,
+      "bar_x":   0.334,
+      "bar_w":   0.180,
+      "bar_h_frac": 0.014,
+      "bar_y_offset_within_row": 0.079,
+      "first_row_y": 0.328,
+      "row_height":  0.124,
+      "max_rows": 10
+    },
+
+    "bar_green": {
+      "_note": "HSV range for SC UI progress-bar bright green (~RGB 85,218,95). The orange selected-cell glow is well below the bar strip so it does not interfere with measurement.",
+      "h_min_deg": 95,
+      "h_max_deg": 145,
+      "s_min": 0.35,
+      "v_min": 0.38
+    }
+  }
+}

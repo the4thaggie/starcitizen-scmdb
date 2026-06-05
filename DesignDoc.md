@@ -41,6 +41,7 @@ An AI agent skill that answers Star Citizen gameplay questions about **missions,
 13. [Ships Modeled](#13-ships-modeled)
 14. [Patch Freshness](#14-patch-freshness)
 15. [Future Features](#15-future-features)
+16. [Subskill: Vision — HUD Screenshot Parsing](#16-subskill-vision--hud-screenshot-parsing)
 
 ---
 
@@ -96,6 +97,7 @@ starcitizen-scmdb/
 │   ├── fabricator.md                Subskill: blueprint lookup, materials, dismantle
 │   ├── missions.md                  Subskill: faction grind planning
 │   ├── resources.md                 Subskill: mining locations, route, acquisition plan
+│   ├── vision.md                    Subskill: screenshot intake, HUD parsing, result routing
 │   └── mining_solver/
 │       ├── index.md                 Subskill entry: loadout collection, modes
 │       ├── math.md                  Reference: modifier math and game mechanics
@@ -105,7 +107,8 @@ starcitizen-scmdb/
 │   ├── missions.schema.json
 │   ├── fabricator.schema.json
 │   ├── resources.schema.json
-│   └── mining.schema.json
+│   ├── mining.schema.json
+│   └── vision.schema.json           HUD parse output (reputation result + error result)
 │
 ├── scripts/
 │   ├── update_cache.sh              Full pipeline runner — run after each game patch
@@ -122,15 +125,23 @@ starcitizen-scmdb/
 │   │   ├── mining_equipment.py      mining_equipment.json → normalized equipment.json
 │   │   └── wiki_items.py            Wiki raw JSON → compact indexed files
 │   │
-│   └── query/
-│       ├── faction_search.py        Faction browser (by system, type, blueprint reward)
-│       ├── mission_grind_plan.py    Rep grind plan from current standing to target tier
-│       ├── blueprint_unlock.py      Faction + pool + standing requirement for a blueprint
-│       ├── blueprint_materials.py   Material slots, quantities, quality→stat tables
-│       ├── mining_locations.py      Best locations for target materials with crack hints
-│       ├── mining_solver.py         Net stats for a laser+module loadout vs a rock
-│       ├── commodity_prices.py      Live UEX sell prices for raw + refined materials
-│       └── material_acquisition_plan.py  Ore budget, trips, refinery ranking, economics
+│   ├── query/
+│   │   ├── faction_search.py        Faction browser (by system, type, blueprint reward)
+│   │   ├── mission_grind_plan.py    Rep grind plan from current standing to target tier
+│   │   ├── blueprint_unlock.py      Faction + pool + standing requirement for a blueprint
+│   │   ├── blueprint_materials.py   Material slots, quantities, quality→stat tables
+│   │   ├── mining_locations.py      Best locations for target materials with crack hints
+│   │   ├── mining_solver.py         Net stats for a laser+module loadout vs a rock
+│   │   ├── commodity_prices.py      Live UEX sell prices for raw + refined materials
+│   │   └── material_acquisition_plan.py  Ore budget, trips, refinery ranking, economics
+│   │
+│   └── vision/
+│       ├── hud_parse.py             CLI: --hud <type> --image <path> → JSON
+│       ├── hud_layouts.json         Crop region definitions (fractional coords, 16:9)
+│       ├── calibrate.py             Visual helper: overlay regions on a reference screenshot
+│       └── parsers/
+│           ├── _base.py             Shared: image load, crop, OCR, bar fill measurement
+│           └── reputation.py        MobiGlas Reputation tab → faction + rank + progress
 │
 └── data/
     ├── VERSION                      Current patch (e.g. 4.8.1-live.11875683)
@@ -170,6 +181,9 @@ starcitizen-scmdb/
 | [`instructions/missions.md`](instructions/missions.md) | Faction rep grinding workflow |
 | [`instructions/resources.md`](instructions/resources.md) | Mining locations and acquisition plan |
 | [`instructions/mining_solver/index.md`](instructions/mining_solver/index.md) | Loadout config and crackability |
+| [`instructions/vision.md`](instructions/vision.md) | Screenshot intake and HUD parsing |
+| [`scripts/vision/hud_parse.py`](scripts/vision/hud_parse.py) | HUD screenshot → JSON (CLI entry point) |
+| [`scripts/vision/hud_layouts.json`](scripts/vision/hud_layouts.json) | Crop region coordinates for each HUD type |
 | [`scripts/update_cache.sh`](scripts/update_cache.sh) | Full pipeline runner |
 
 [↑ Contents](#table-of-contents)
@@ -774,6 +788,121 @@ Ship stats (cargo, QD speed, fuel) come from [`data/wiki/ships.json`](data/wiki/
 - Agent reads `VERSION` before every query and cites it in all answers
 - If the user mentions a different patch: warn that data may be stale and suggest running `bash scripts/update_cache.sh`
 - Raw data files are safe to re-fetch any time — [`scmdb_raw.py`](scripts/fetch/scmdb_raw.py) skips files that already exist for the current version
+
+[↑ Contents](#table-of-contents)
+
+---
+
+## 16. Subskill: Vision — HUD Screenshot Parsing
+
+Entry point: [`instructions/vision.md`](instructions/vision.md)  
+Schema: [`schemas/vision.schema.json`](schemas/vision.schema.json)  
+Scripts: [`scripts/vision/`](scripts/vision/)
+
+Accepts a screenshot from the user (via Telegram, Discord, or direct path) and extracts structured game state from the in-game HUD without requiring a vision-capable AI model. Extraction is done with deterministic image cropping, OCR, and pixel-level colour analysis — all locally, with the image deleted after processing.
+
+### Why no vision model
+
+The Star Citizen HUD layout is fixed for a given 16:9 aspect ratio. Because every element appears at a predictable pixel position, we can:
+1. Crop the image to the exact region of interest
+2. Enhance contrast and run Tesseract OCR for text fields
+3. Count HSV-matched green pixels along progress bars for percentage values
+
+This is cheaper, faster, and keeps no image data in the LLM context window.
+
+### Repository layout
+
+```
+scripts/vision/
+├── hud_parse.py          CLI entry point: --hud <type> --image <path>
+├── hud_layouts.json      Crop region definitions (fractional coords, 1920×1080 canonical)
+├── calibrate.py          Visual helper: overlays regions onto a reference screenshot
+└── parsers/
+    ├── __init__.py
+    ├── _base.py          Shared: load_and_normalise, crop_frac, enhance_for_ocr, run_ocr, measure_green_fill
+    └── reputation.py     MobiGlas Reputation tab → faction, relationship, rank list, progress %
+```
+
+### Supported HUDs
+
+| `--hud` | In-game screen | Key output fields |
+|---|---|---|
+| `reputation` | MobiGlas → Reputation tab (faction selected) | `faction`, `relationship`, `standing.in_progress_rank`, `standing.progress_pct`, `standing.ranks[]` |
+
+### Pipeline
+
+```
+User sends screenshot
+        │
+        ▼
+instructions/vision.md  ─── identify HUD type
+        │
+        ▼
+hud_parse.py --hud <type> --image <tmp_path>
+        │
+        ├─ load_and_normalise()    resize to 1920×1080
+        ├─ crop_frac()             cut each region per hud_layouts.json
+        ├─ enhance_for_ocr()       grayscale + contrast + 3× upscale + threshold
+        ├─ run_ocr()               Tesseract (single-line mode for titles)
+        ├─ measure_green_fill()    HSV pixel count across bar region
+        ├─ os.unlink(image_path)   image deleted here
+        │
+        ▼
+JSON to stdout  →  agent reads and routes to missions.md / resources.md / etc.
+```
+
+### Reputation output → grind plan handoff
+
+```json
+{
+  "hud": "reputation",
+  "faction": "Adagio Holdings",
+  "relationship": "Ally",
+  "standing": {
+    "in_progress_rank": "Sr. Contractor",
+    "progress_pct": 42,
+    "ranks": [
+      { "name": "Neutral",        "state": "complete",    "progress_pct": 100 },
+      { "name": "Jr. Contractor", "state": "complete",    "progress_pct": 100 },
+      { "name": "Contractor",     "state": "complete",    "progress_pct": 100 },
+      { "name": "Sr. Contractor", "state": "in_progress", "progress_pct": 42  }
+    ]
+  }
+}
+```
+
+The agent maps this to `mission_grind_plan.py`:
+- `--faction "Adagio Holdings"`
+- `--current-rep` ≈ `tier_min + 0.42 × (tier_max − tier_min)` using the tier boundaries in `data/missions/<version>.json`
+
+### Adding a new HUD type
+
+1. Add a crop-region definition to `scripts/vision/hud_layouts.json`
+2. Create `scripts/vision/parsers/<hud_name>.py` implementing `parse(image_path) → dict`
+3. Register it in `PARSERS` dict in `scripts/vision/hud_parse.py`
+4. Add the annotate branch to `scripts/vision/calibrate.py`
+5. Validate with `calibrate.py --hud <name> --image <ref_screenshot>`
+6. Add `--hud <name>` to the supported table in `instructions/vision.md`
+7. Update this section
+
+### Calibration
+
+All region coordinates in `hud_layouts.json` are stored as fractions of the 1920×1080 canonical frame. To verify or tune:
+
+```bash
+python3 scripts/vision/calibrate.py --hud reputation --image my_ref_screenshot.png
+# → my_ref_screenshot_annotated.png  (coloured boxes overlaid)
+```
+
+The `"_calibration_status"` key in `hud_layouts.json` is removed once a HUD's regions have been validated against a real screenshot.
+
+### Dependencies
+
+```
+Pillow>=10.0.0
+pytesseract>=0.3.10
+```
+System: `apt install tesseract-ocr` (Linux) / `brew install tesseract` (macOS)
 
 [↑ Contents](#table-of-contents)
 

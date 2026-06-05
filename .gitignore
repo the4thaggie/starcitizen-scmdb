@@ -4,3 +4,8 @@ __pycache__/
 .DS_Store
 data/raw/
 data/wiki/raw/
+
+# Vision: calibration reference screenshots and annotated debug output
+*_annotated.png
+scripts/vision/ref_*.png
+scripts/vision/ref_*.jpg

@@ -1,0 +1,16 @@
+# Python dependencies for the starcitizen-scmdb skill scripts
+#
+# Core (data pipeline + query scripts):
+#   requests — HTTP for UEX Corp API and SC Wiki API fetch scripts
+requests>=2.31.0
+
+# Vision / HUD parsing (scripts/vision/):
+#   Pillow — image loading, cropping, contrast enhancement
+#   pytesseract — Python wrapper for Tesseract OCR
+#
+# System dependency (not pip-installable):
+#   tesseract-ocr — must be installed separately:
+#     Linux:  sudo apt install tesseract-ocr
+#     macOS:  brew install tesseract
+Pillow>=10.0.0
+pytesseract>=0.3.10

@@ -1,0 +1,75 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HUD Parse Output",
+  "description": "Output of scripts/vision/hud_parse.py — one result object per supported HUD type.",
+
+  "oneOf": [
+    { "$ref": "#/definitions/ReputationResult" },
+    { "$ref": "#/definitions/ErrorResult" }
+  ],
+
+  "definitions": {
+
+    "ReputationResult": {
+      "type": "object",
+      "required": ["hud", "parsed_at", "faction", "relationship", "standing", "warnings"],
+      "properties": {
+        "hud":          { "type": "string", "const": "reputation" },
+        "parsed_at":    { "type": "string", "description": "ISO-8601 UTC timestamp" },
+        "faction":      { "type": "string", "description": "Active faction name as shown in the UI (e.g. 'Adagio Holdings')" },
+        "relationship": { "type": "string", "description": "Standing label below faction name (e.g. 'Ally', 'Neutral', 'Enemy')" },
+        "standing": {
+          "type": "object",
+          "required": ["in_progress_rank", "progress_pct", "ranks"],
+          "properties": {
+            "in_progress_rank": {
+              "type": ["string", "null"],
+              "description": "Name of the rank with a partially filled bar, or null if none found"
+            },
+            "progress_pct": {
+              "type": ["integer", "null"],
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Percentage of the bar filled for the in-progress rank (0–100), or null"
+            },
+            "ranks": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/RankEntry" },
+              "description": "All visible rank rows, top to bottom"
+            }
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Non-fatal issues encountered during parsing (e.g. empty OCR output, uncalibrated regions)"
+        }
+      }
+    },
+
+    "RankEntry": {
+      "type": "object",
+      "required": ["name", "state", "progress_pct"],
+      "properties": {
+        "name":         { "type": "string", "description": "Rank name as read by OCR (e.g. 'Sr. Contractor')" },
+        "state":        { "type": "string", "enum": ["complete", "in_progress", "locked"] },
+        "progress_pct": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Bar fill as a percentage: 100 = complete, 0 = locked, 1–99 = in progress"
+        }
+      }
+    },
+
+    "ErrorResult": {
+      "type": "object",
+      "required": ["error", "hud"],
+      "properties": {
+        "error": { "type": "string" },
+        "hud":   { "type": "string" }
+      }
+    }
+
+  }
+}

@@ -70,6 +70,15 @@ Load `instructions/mining_solver/index.md`.
 
 ---
 
+### Branch: HUD Screenshot
+**Triggers:** user sends or attaches a screenshot / photo / image; says "here's my screen", "look at this", "I took a screenshot"; or an image file path appears in the message context.
+
+Load `instructions/vision.md` and follow its intake + routing workflow.
+
+The parser script handles all image processing locally and deletes the file after use. No image data is retained.
+
+---
+
 ## Stale data check
 
 If the user mentions a patch version that does not match `data/VERSION`:
