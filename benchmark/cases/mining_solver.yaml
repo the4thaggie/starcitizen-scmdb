@@ -1,0 +1,159 @@
+# =============================================================================
+# CASES — Mining Solver branch (laser/module selection, crackability, net stats)
+# Anchors: SKILL.md:66-70, instructions/mining_solver/index.md
+# =============================================================================
+category: mining_solver
+category_weight_hint: 1.0
+
+cases:
+
+  - id: solver-001
+    title: "Loadout recommendation for a named material"
+    difficulty: easy
+    tags: [routing, workflow_adherence, rationale_surfacing, disclaimer]
+    scenario:
+      user_persona: "Prospector pilot wanting a recommendation."
+      seed_messages:
+        - "what laser and modules should i run in my prospector for laranite"
+    human_speak:
+      raw: "what laser and modules should i run in my prospector for laranite"
+      canonical_intent: "Mining solver — recommend loadout for ship=Prospector targeting Laranite."
+      entities: { ship: prospector, rock_material: Laranite, request: recommend }
+      common_misreads:
+        - "Routing to resources (location) instead of solver (loadout)."
+    expected_workflow:
+      branch: "Mining solver / loadout"
+      must_load: [instructions/mining_solver/index.md]
+      steps:
+        - "Ship + material known + 'what should I use' -> Step 2b recommend path."
+        - "Run solver --recommend; surface recommended_laser, recommended_modules (type/charges), and ALL rationale bullets."
+        - "Append the mandatory mixed-composition disclaimer (index.md:115-116)."
+      scripts_implied: [mining_solver.py]
+      must_surface: [recommended_laser, recommended_modules, module_type_active_or_passive, rationale_all]
+    required_context: [ship, rock_material]
+    defaults_allowed:
+      modules: "none -> recommendation fills them"
+      gadgets: "never assume — must ask before recommending (index.md:135-136)"
+    ground_truth:
+      prospector_facts: { laser_slots: 1, laser_size: 1, cargo_scu: 12 }
+      laranite_facts: { resistance: 0.5, instability: 400 }
+      patch_line_required: "[Data: patch 4.8.1-live.11875683]"
+      mixed_composition_disclaimer_required: true
+      checks:
+        - "Prospector has exactly ONE S1 laser slot — a recommendation implying multiple lasers is wrong."
+        - "Gadgets must NOT be recommended without first asking."
+        - "Mixed-composition disclaimer must be present."
+    rubric:
+      gates_in_scope: [G_patch_citation, G_hallucination, G_one_question]
+      case_specific_checks:
+        - id: rationale-surfaced
+          assert: "All rationale bullets surfaced, not just the laser name."
+          dimension: workflow_adherence
+        - id: gadget-not-assumed
+          assert: "No gadget recommended without asking."
+          dimension: workflow_adherence
+        - id: disclaimer-present
+          assert: "Mixed-composition disclaimer present."
+          dimension: output_compliance
+    exemplars:
+      pass: "Recommends laser + modules (marks active vs passive + charges), lists rationale, notes 'these stats assume Laranite as the rock element — real rocks are mixed...'."
+      fail: "Recommends a gadget unprompted, or omits the disclaimer."
+
+  - id: solver-002
+    title: "Golem fixed-laser branching rule"
+    difficulty: hard
+    tags: [branching_rule, edge_case, capability_honesty]
+    scenario:
+      user_persona: "Golem owner."
+      seed_messages:
+        - "im in a golem, which mining laser should i pick for cracking a hard rock"
+    human_speak:
+      raw: "im in a golem, which mining laser should i pick for cracking a hard rock"
+      canonical_intent: "Mining solver — Golem; user assumes laser choice exists, but Golem laser is FIXED."
+      entities: { ship: golem, request: laser_selection }
+      common_misreads:
+        - "Presenting a laser-selection menu for the Golem (it has a fixed Pitman laser)."
+    expected_workflow:
+      branch: "Mining solver / loadout"
+      must_load: [instructions/mining_solver/index.md]
+      steps:
+        - "Recognize Golem -> fixed Pitman Mining Laser; skip laser selection (index.md:121-123)."
+        - "Correct the premise gently, then move to MODULE selection."
+        - "Proceed with crackability/loadout via modules only."
+      scripts_implied: [mining_solver.py]
+      must_surface: [golem_fixed_laser_note, module_focused_guidance]
+    required_context: [ship]   # known; rock material/mass for crackability may be collected next
+    defaults_allowed:
+      rock_mass: "qualitative default if unknown, noted"
+    ground_truth:
+      golem_fixed_laser: "Pitman Mining Laser"
+      golem_facts: { laser_slots: 1, fixed_laser: "Pitman Mining Laser", cargo_scu: 12 }
+      patch_line_required: "[Data: patch 4.8.1-live.11875683]"
+      checks:
+        - "Agent MUST state the Golem runs a fixed Pitman laser and pivot to modules."
+        - "Offering a choice of laser heads for the Golem = factual error (G_hallucination)."
+    rubric:
+      weights: { workflow_adherence: 0.25, data_fidelity: 0.20, human_speak: 0.10 }
+      gates_in_scope: [G_patch_citation, G_hallucination, G_capability_fabrication, G_one_question]
+      case_specific_checks:
+        - id: fixed-laser-stated
+          assert: "Stated Golem's fixed Pitman laser and skipped laser selection."
+          dimension: workflow_adherence
+        - id: pivot-to-modules
+          assert: "Redirected to module configuration."
+          dimension: workflow_adherence
+    exemplars:
+      pass: "'The Golem runs a fixed Pitman Mining Laser — you can't swap the head, only modules are configurable. Let's pick modules for that hard rock...'"
+      fail: "Lists 3 lasers to 'choose from' for the Golem."
+
+  - id: solver-003
+    title: "MOLE multi-crew operators handling"
+    difficulty: hard
+    tags: [branching_rule, multi_crew, math_consistency]
+    scenario:
+      user_persona: "MOLE crew lead."
+      seed_messages:
+        - "running a mole with my org, whats our combined mining output look like for bexalite"
+      scripted_followups:
+        - after: "agent asks how many operators are running lasers (1/2/3)"
+          user_says: "3 of us"
+    human_speak:
+      raw: "running a mole with my org, whats our combined mining output look like for bexalite"
+      canonical_intent: "Mining solver — MOLE multi-crew; combined DPS depends on operator count."
+      entities: { ship: mole, rock_material: Bexalite, multi_crew: true }
+      common_misreads:
+        - "Answering combined output without asking operator count."
+        - "Treating MOLE as a single-laser ship."
+    expected_workflow:
+      branch: "Mining solver / loadout"
+      must_load: [instructions/mining_solver/index.md]
+      steps:
+        - "Recognize MOLE multi-crew -> ask operator count 1/2/3 (index.md:125-127)."
+        - "Solve per-laser; combined DPS = n x single-laser DPS."
+        - "Present per-laser stats and the combined figure with the multiplier made explicit."
+      scripts_implied: [mining_solver.py]
+      must_surface: [per_laser_stats, combined_dps, operator_multiplier_explained]
+    required_context: [ship, operator_count]
+    defaults_allowed:
+      rock_mass: "qualitative default if unknown, noted"
+    ground_truth:
+      mole_facts: { laser_slots: 3, laser_size: 2, cargo_scu: 96 }
+      bexalite_is_valid: true
+      combined_dps_rule: "combined = operators x single-laser DPS"
+      patch_line_required: "[Data: patch 4.8.1-live.11875683]"
+      checks:
+        - "Operator count must be asked before stating combined output."
+        - "Combined DPS must equal operator_count x single-laser DPS (internal consistency check)."
+    rubric:
+      weights: { workflow_adherence: 0.25 }
+      gates_in_scope: [G_patch_citation, G_hallucination, G_one_question, G_premature_script]
+      case_specific_checks:
+        - id: operator-count-asked
+          assert: "Operator count (1/2/3) asked before combined output given."
+          dimension: context_gathering
+        - id: dps-math-consistent
+          assert: "Combined DPS = operators x single-laser DPS (3x here)."
+          dimension: data_fidelity
+    exemplars:
+      pass: "'The MOLE's three S2 lasers operate independently — how many of you are lasing, 1/2/3?' -> '3' -> per-laser stats + 'combined = 3 x single = ...'."
+      fail: "States a single combined number without asking, or treats the MOLE as one laser."

@@ -1,0 +1,237 @@
+# =============================================================================
+# CASES — Cross-cutting (version staleness, output rules, routing disambiguation,
+#                        human-speak stress, scope honesty)
+# Anchors: SKILL.md:82-95
+# These exercise behaviors that span every branch.
+# =============================================================================
+category: cross_cutting
+category_weight_hint: 1.0
+
+cases:
+
+  - id: cross-001
+    title: "Stale-data warning when user names a newer patch"
+    difficulty: easy
+    tags: [version_check, output_compliance, honesty]
+    scenario:
+      user_persona: "Up-to-date player on a newer patch than the cache."
+      seed_messages:
+        - "on 4.9 now, where do i sell quantainium for the most"
+    human_speak:
+      raw: "on 4.9 now, where do i sell quantainium for the most"
+      canonical_intent: "Resources/pricing query, BUT user names patch 4.9 which differs from cached data/VERSION (4.8.1)."
+      entities: { patch_mentioned: "4.9", material: Quantainium, intent: best_sell_price }
+      common_misreads:
+        - "Ignoring the patch mismatch and answering as if current."
+    expected_workflow:
+      branch: "Resources / Mining locations (with stale-data check first)"
+      must_load: [instructions/resources.md]
+      steps:
+        - "Detect mentioned patch (4.9) != data/VERSION (4.8.1-live.11875683) -> surface the stale-data warning (SKILL.md:82-86)."
+        - "Still answer with available data, clearly labeled with the cached patch."
+        - "Mention update path (bash scripts/update_cache.sh)."
+      scripts_implied: [mining_locations.py, commodity_prices.py]
+      must_surface: [stale_data_warning, cached_patch_label, answer_with_caveat]
+    required_context: [material]
+    defaults_allowed:
+      system: "all, noted"
+    ground_truth:
+      cached_version: "4.8.1-live.11875683"
+      stale_warning_required: true
+      update_command: "bash scripts/update_cache.sh"
+      patch_line_required: "[Data: patch 4.8.1-live.11875683]"
+      checks:
+        - "Stale-data warning must reference both the cached patch and the user's 4.9."
+        - "Answer must still be labeled with the cached patch, not relabeled as 4.9."
+    rubric:
+      gates_in_scope: [G_patch_citation, G_hallucination]
+      case_specific_checks:
+        - id: stale-warning
+          assert: "Stale-data warning surfaced referencing cached vs mentioned patch."
+          dimension: output_compliance
+        - id: honest-labeling
+          assert: "Data labeled as the cached patch, not falsely as 4.9."
+          dimension: data_fidelity
+    exemplars:
+      pass: "'My data is for patch 4.8.1-live.11875683 — you mentioned 4.9, so prices may have shifted. Run `bash scripts/update_cache.sh` to refresh. Based on cached data: ...'"
+      fail: "Answers and labels it '[Data: patch 4.9]' or ignores the mismatch."
+
+  - id: cross-002
+    title: "Output-rules stress — no raw JSON, patch line, found:false phrasing"
+    difficulty: easy
+    tags: [output_compliance, gates, found_false]
+    scenario:
+      user_persona: "Asks for something that returns no result."
+      seed_messages:
+        - "show me mining locations for 'Unobtanium' in stanton"
+    human_speak:
+      raw: "show me mining locations for 'Unobtanium' in stanton"
+      canonical_intent: "Resources branch — material that does not exist in the data; must handle found:false cleanly."
+      entities: { material: "Unobtanium (nonexistent)", system: Stanton }
+      common_misreads:
+        - "Inventing locations for a fake material."
+        - "Dumping the raw script JSON."
+    expected_workflow:
+      branch: "Resources / Mining locations"
+      must_load: [instructions/resources.md]
+      steps:
+        - "Run lookup -> not found. Say so plainly and offer to search differently or suggest valid materials (SKILL.md:93)."
+        - "Lead with the patch line; never paste raw JSON (SKILL.md:90-91)."
+      scripts_implied: [mining_locations.py]
+      must_surface: [found_false_message, suggested_valid_materials_or_retry]
+    required_context: [material]
+    defaults_allowed: {}
+    ground_truth:
+      unobtanium_is_invalid: true
+      valid_material_examples: [Quantainium, Laranite, Tungsten, Borase, Bexalite, Gold, Titanium]
+      patch_line_required: "[Data: patch 4.8.1-live.11875683]"
+      checks:
+        - "Must NOT invent a location for Unobtanium."
+        - "Must NOT paste raw JSON (G_raw_json)."
+        - "Patch line must lead the answer (G_patch_citation)."
+    rubric:
+      weights: { output_compliance: 0.25, data_fidelity: 0.20 }
+      gates_in_scope: [G_patch_citation, G_raw_json, G_hallucination]
+      case_specific_checks:
+        - id: clean-not-found
+          assert: "found:false handled in prose; offered retry / valid options."
+          dimension: output_compliance
+    exemplars:
+      pass: "'[Data: patch ...] I don't have a material called Unobtanium. Did you mean one of: Quantainium, Laranite, Tungsten...? '"
+      fail: "Pastes `{\"found\": false, ...}` or invents an Unobtanium field."
+
+  - id: cross-003
+    title: "Multi-intent disambiguation -> correct primary branch"
+    difficulty: hard
+    tags: [routing, orchestration, multi_intent]
+    scenario:
+      user_persona: "Conflates crafting and mining in one breath."
+      seed_messages:
+        - "i wanna craft a good size 1 quantum drive and mine everything i need for it myself"
+    human_speak:
+      raw: "i wanna craft a good size 1 quantum drive and mine everything i need for it myself"
+      canonical_intent: "Two intents (craft a blueprint + mine its materials) -> fabricator is the correct entry that orchestrates both."
+      entities: { item_type: quantum_drive, size: 1, secondary_intent: mining_route }
+      common_misreads:
+        - "Entering via the mining solver or resources branch and never reaching the blueprint."
+        - "Treating it as two unrelated questions."
+    expected_workflow:
+      branch: "Blueprint + Grind + Materials + Mining"
+      must_load: [instructions/fabricator.md]
+      also_loads: [instructions/resources.md]
+      steps:
+        - "Recognize blueprint+mining multi-intent -> enter via fabricator (SKILL.md:18-22)."
+        - "Resolve the S1 QD blueprint, present unlock + materials."
+        - "Then hand to resources.md for the mining route of those materials."
+      scripts_implied: [blueprint_unlock.py, blueprint_materials.py, mining_locations.py]
+      must_surface: [blueprint_resolution, materials, mining_route_offer]
+    required_context: [chosen_blueprint]
+    defaults_allowed:
+      system: "any until mining step"
+      ship: "unknown, noted"
+    ground_truth:
+      correct_entry: fabricator
+      patch_line_required: "[Data: patch 4.8.1-live.11875683]"
+      checks:
+        - "Primary entry must be fabricator; the mining route is a downstream step, not the entry."
+        - "Both intents (craft + mine) must ultimately be served."
+    rubric:
+      weights: { routing: 0.25, workflow_adherence: 0.20 }
+      gates_in_scope: [G_patch_citation, G_hallucination, G_one_question, G_open_question_where_lookup_required]
+      case_specific_checks:
+        - id: fabricator-primary
+          assert: "Entered via fabricator, reached the blueprint, then offered the mining route."
+          dimension: routing
+        - id: both-intents-served
+          assert: "Both the craft and the self-mining intents addressed."
+          dimension: workflow_adherence
+    exemplars:
+      pass: "Resolves the S1 QD blueprint and unlock, shows materials, then 'want the mining route for those materials?'."
+      fail: "Starts a mining-locations route for 'quantum drive' as if QD were a material."
+
+  - id: cross-004
+    title: "Human-speak stress — heavy slang, typos, abbreviations"
+    difficulty: medium
+    tags: [human_speak, robustness]
+    scenario:
+      user_persona: "Voice-to-text mess, lots of slang."
+      seed_messages:
+        - "ayo my prosp cant crack this daddy of laran, what modz do i slap on to fix the green window"
+    human_speak:
+      raw: "ayo my prosp cant crack this daddy of laran, what modz do i slap on to fix the green window"
+      canonical_intent: "Mining solver — Prospector struggling to crack a large Laranite rock; wants module advice to manage the power window."
+      entities: { ship: prospector, rock_material: Laranite, rock_size: large, request: module_recommendation, problem: window_management }
+      common_misreads:
+        - "Not expanding prosp->Prospector, laran->Laranite, daddy->large rock, modz->modules, green window->power band."
+        - "Routing to resources (location) instead of solver (loadout/window)."
+    expected_workflow:
+      branch: "Mining solver / loadout"
+      must_load: [instructions/mining_solver/index.md]
+      steps:
+        - "Decode slang to entities (see canonical_intent)."
+        - "Confirm/assume large rock mass with a noted default; target = Laranite."
+        - "Recommend modules that help the power window (active modules for instability); surface rationale."
+      scripts_implied: [mining_solver.py]
+      must_surface: [decoded_intent, module_recommendation, window_guidance]
+    required_context: [ship, rock_material]
+    defaults_allowed:
+      rock_mass: "large default (e.g. 20000), noted"
+      gadgets: "ask before recommending"
+    ground_truth:
+      slang_map: { prosp: Prospector, laran: Laranite, daddy: "large/high-value rock", modz: modules, "green window": "optimal power band" }
+      laranite_facts: { instability: 400, resistance: 0.5 }
+      patch_line_required: "[Data: patch 4.8.1-live.11875683]"
+      checks:
+        - "All slang correctly expanded; intent = module/window help, not location."
+    rubric:
+      weights: { human_speak: 0.30, routing: 0.15 }
+      gates_in_scope: [G_patch_citation, G_hallucination, G_one_question]
+      case_specific_checks:
+        - id: slang-fully-decoded
+          assert: "prosp/laran/daddy/modz/green-window all decoded correctly."
+          dimension: human_speak
+    exemplars:
+      pass: "'Got it — Prospector, big Laranite rock, trouble holding the green window. For instability (~400) active modules like ... help absorb spikes...'"
+      fail: "Routes to 'where to find Laranite' or asks 'what is prosp?'."
+
+  - id: cross-005
+    title: "Out-of-scope request — graceful boundary"
+    difficulty: easy
+    tags: [scope_honesty, routing]
+    scenario:
+      user_persona: "Asks something the skill doesn't cover."
+      seed_messages:
+        - "whats the best combat loadout for a Gladius for pvp dogfighting"
+    human_speak:
+      raw: "whats the best combat loadout for a Gladius for pvp dogfighting"
+      canonical_intent: "Out-of-scope — combat ship loadout / PvP is not a SCMDB mining/missions/crafting topic."
+      entities: { ship: Gladius, topic: combat_pvp }
+      common_misreads:
+        - "Fabricating combat-loadout data the skill has no source for."
+    expected_workflow:
+      branch: "None (no matching branch)"
+      must_load: []
+      steps:
+        - "Recognize no branch matches combat/PvP loadout."
+        - "Decline gracefully, state the skill's scope (missions, crafting, mining), and offer an in-scope alternative."
+      scripts_implied: []
+      must_surface: [scope_statement, in_scope_offer]
+    required_context: []
+    defaults_allowed: {}
+    ground_truth:
+      in_scope_topics: [missions/rep, crafting/blueprints, mining/resources, HUD screenshots]
+      out_of_scope: [combat loadouts, PvP tactics]
+      patch_line_required: "optional — no data answer is delivered, so G_patch_citation does NOT apply"
+      checks:
+        - "Must NOT fabricate combat-loadout data."
+        - "Should state scope and offer an in-scope redirect."
+    rubric:
+      weights: { routing: 0.30, data_fidelity: 0.20, output_compliance: 0.10 }
+      gates_in_scope: [G_hallucination, G_capability_fabrication]
+      case_specific_checks:
+        - id: graceful-decline
+          assert: "Declined out-of-scope without fabricating, stated scope, offered alternative."
+          dimension: routing
+    exemplars:
+      pass: "'That's outside what I cover — I handle Star Citizen missions/rep, crafting blueprints, and mining. Want help with any of those?'"
+      fail: "Invents a 'best Gladius PvP loadout' with made-up components."

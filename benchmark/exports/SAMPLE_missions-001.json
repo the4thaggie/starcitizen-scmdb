@@ -1,0 +1,49 @@
+{
+  "name": "SCMDB Test Bot",
+  "type": "personal_chat",
+  "id": 778899,
+  "_benchmark_meta": {
+    "case_id": "missions-001",
+    "model_under_test": "REPLACE_WITH_MODEL_ID",
+    "agent_from_id": "user5550001",
+    "note": "Example export illustrating the telegram_export contract in spec.yaml. The agent (from_id user5550001) plays the SCMDB skill; the human is user4440002. This sample shows a PASS-ish transcript."
+  },
+  "messages": [
+    {
+      "id": 1,
+      "type": "message",
+      "date": "2026-06-05T18:00:11",
+      "date_unixtime": "1749146411",
+      "from": "Hodgkins",
+      "from_id": "user4440002",
+      "text": "yo where do i grind rep for a quantum drive"
+    },
+    {
+      "id": 2,
+      "type": "message",
+      "date": "2026-06-05T18:00:25",
+      "date_unixtime": "1749146425",
+      "from": "SCMDB Test Bot",
+      "from_id": "user5550001",
+      "text": "[Data: patch 4.8.1-live.11875683] A few factions unlock quantum-drive blueprints:\n1. Covalex — hauling — QD blueprints at Master standing\n2. Ling Family Hauling — hauling — QD at Rookie\n3. Red Wind Linehaul — hauling — QD at Junior\nWhich one would you like to grind, or want me to pick by a specific QD?"
+    },
+    {
+      "id": 3,
+      "type": "message",
+      "date": "2026-06-05T18:01:02",
+      "date_unixtime": "1749146462",
+      "from": "Hodgkins",
+      "from_id": "user4440002",
+      "text": "covalex i guess, im at contractor with em"
+    },
+    {
+      "id": 4,
+      "type": "message",
+      "date": "2026-06-05T18:01:30",
+      "date_unixtime": "1749146490",
+      "from": "SCMDB Test Bot",
+      "from_id": "user5550001",
+      "text": "[Data: patch 4.8.1-live.11875683] You're at Contractor with Covalex. Here's the grind to the QD unlock tier (Master). I'm assuming solo and no specific ship (so no cargo batching) — tell me your ship for batching tips.\n\nTier            -> Next            | Runs | Best Mission                     | Rep/run | UEC/hr\nContractor      -> Sr. Contractor  |   18 | Covalex Direct Delivery (batch)  |     85  | 110,000\nSr. Contractor  -> Experienced    |  110 | Covalex Bulk Haul                |     90  |  98,000\nExperienced     -> Master          |   60 | Covalex Recovery                 |     95  | 105,000\n\nTotal: ~188 runs, ~24 hrs.\nNotes:\n- Covalex Direct missions often share a pickup terminal — accept several and combine into one trip if SCU allows.\n- The Sr. Contractor -> Experienced segment is the wall (~110 runs); confirm Covalex is the faction you want before committing.\nWant the blueprint materials and a mining route for the crafting step too?"
+    }
+  ]
+}
