@@ -37,8 +37,8 @@ echo "--- Step 4: Transform resources ---"
 python3 "$REPO_ROOT/scripts/transform/resources.py" "$VERSION"
 
 echo ""
-echo "--- Step 5: Fetch UEX prices (TODO) ---"
-# python3 "$REPO_ROOT/scripts/fetch/uex_api.py"
+echo "--- Step 5: Fetch UEX static data (commodities, terminals, refinery methods) ---"
+python3 "$REPO_ROOT/scripts/fetch/uex_api.py"
 
 echo ""
 echo "--- Step 6: Fetch SC Wiki data ---"

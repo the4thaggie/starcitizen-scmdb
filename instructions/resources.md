@@ -94,3 +94,57 @@ If yes → load `instructions/mining_solver/index.md`.
 **If no locations found in the specified system:**
 > "I couldn't find [material] in [system]. It appears in: [list other systems]. Would you like locations from those instead?"
 Re-run without `--system`.
+
+---
+
+## Step 5 — Sell prices (offer after route is presented)
+
+After presenting the mining route, offer:
+> "Want me to check current sell prices and refinery options for these materials?"
+
+If yes, run:
+```bash
+python3 scripts/query/commodity_prices.py \
+  --materials "<mat1,mat2,mat3>" \
+  --system <Stanton|Pyro|Nyx> \
+  --top 3
+```
+
+**Output keys:**
+
+| Key | Use |
+|---|---|
+| `materials.<name>.refined.best_price_sell` | Best aUEC/SCU for refined material — the primary sell target |
+| `materials.<name>.refined.terminals[]` | Top terminals: name, location, price, last_updated |
+| `materials.<name>.raw` | Raw ore buy-back price (if available) — lower but no refinery wait |
+| `refinery_methods[]` | Show as a table: name, yield, cost, speed — user picks based on patience |
+| `nearby_refineries[]` | List the closest refineries in the system |
+| `fetched_at` | Cite this — prices are live, not cached |
+| `auth` | If false: note prices are community-reported, may lag by ~30 min |
+
+**Present as:**
+```
+SELL PRICES (live — as of [fetched_at])
+
+Material   │ Refined $/SCU │ Best Terminal             │ Raw $/SCU
+──────────────────────────────────────────────────────────────────
+Borase     │ 31,000        │ Admin - MIC-L1 (Stanton)  │ N/A
+Tungsten   │ 11,000        │ Admin - Nyx Gateway       │ N/A
+Ouratite   │ 46,000        │ TDD - New Babbage         │ N/A
+
+REFINERY OPTIONS (for raw ore → refined commodity)
+  Dinyx Solventation: high yield, low cost, slow    ← best value if not in a rush
+  Ferron Exchange:    high yield, medium cost, slow ← alternative
+  Gaskin Process:     medium yield, high cost, fast ← if you need the credits quickly
+
+Nearby Stanton refineries: ARC-L1, ARC-L2, ARC-L3, ARC-L4, ARC-L5 (all Lagrange stations)
+```
+
+**Refinery method guidance:**
+- For casual miners: recommend **Dinyx Solventation** (high yield, low cost — just takes longer)
+- For time-pressured runs: recommend **Gaskin Process** or **Cormack** (fast, costs more)
+- Never recommend high-cost + slow methods (Pyrometric Chromalysis) unless user asks
+
+**Auth note:**
+The skill works without a UEX API token for all price lookups. If `UEX_API_TOKEN` is set in `.env`,
+it will be used for better rate limits. Neither the user nor the agent needs to log in to UEX for prices.

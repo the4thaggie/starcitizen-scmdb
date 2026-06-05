@@ -35,7 +35,8 @@
       "Bash(curl -s \"https://api.star-citizen.wiki/api/items?filter[name]=Yeager&include=components\")",
       "Bash(curl -sv \"https://api.star-citizen.wiki/api/vehicles?filter[name]=Prospector\")",
       "WebFetch(domain:api.star-citizen.wiki)",
-      "Bash(python3 scripts/query/blueprint_unlock.py --name \"Yeager\")"
+      "Bash(python3 scripts/query/blueprint_unlock.py --name \"Yeager\")",
+      "WebFetch(domain:uexcorp.space)"
     ]
   }
 }

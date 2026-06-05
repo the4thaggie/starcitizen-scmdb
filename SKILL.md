@@ -46,7 +46,7 @@ Collect **faction and current rep** before calling any grind script. Ship and pa
 ---
 
 ### Branch: Resources / Mining locations
-**Triggers:** user asks where to mine a material, best mining locations, or ore concentrations.
+**Triggers:** user asks where to mine a material, best mining locations, ore concentrations, or sell prices for mined materials.
 
 Load `instructions/resources.md` and follow its workflow.
 
@@ -56,6 +56,8 @@ Load `instructions/resources.md` and follow its workflow.
 | Target material(s) | "Which material(s) are you looking for?" | Must ask |
 | System | "Which system are you currently in?" | Run all, note it |
 | Ship | "What mining ship are you flying?" | "unknown" — flag capability warnings |
+
+**Sell prices:** After presenting the mining route, offer to fetch live sell prices via `commodity_prices.py`. No token required — prices are always available.
 
 ---
 
