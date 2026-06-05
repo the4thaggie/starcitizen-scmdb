@@ -63,6 +63,14 @@ def load_equipment() -> dict:
         return json.load(f)
 
 
+def load_wiki_lasers() -> dict:
+    path = REPO_ROOT / "data" / "wiki" / "mining_lasers.json"
+    if not path.exists():
+        return {}
+    with open(path) as f:
+        return json.load(f)
+
+
 def load_mining_data() -> dict:
     version = (REPO_ROOT / "data" / "VERSION").read_text().strip()
     path = REPO_ROOT / "data" / "raw" / version / "mining_data.json"
@@ -318,12 +326,24 @@ def main():
 
     equipment = load_equipment()
     mining_data = load_mining_data()
+    wiki_lasers = load_wiki_lasers()
 
     ship_key = args.ship.lower().strip()
     ship = equipment["ships"].get(ship_key)
     if not ship:
         print(json.dumps({"error": f"Unknown ship '{args.ship}'. Valid: {list(equipment['ships'].keys())}"}))
         return
+
+    # Enrich equipment lasers with wiki power range where available
+    for laser in equipment["lasers"]:
+        wiki_l = wiki_lasers.get(laser["name"], {})
+        if wiki_l:
+            laser["power_min"] = wiki_l.get("power_min")
+            laser["power_max"] = wiki_l.get("power_max")
+            laser["optimal_range_m"] = wiki_l.get("optimal_range_m")
+            laser["maximum_range_m"] = wiki_l.get("maximum_range_m")
+            laser["grade"] = wiki_l.get("grade")
+            laser["class"] = wiki_l.get("class")
 
     # --- List mode ---
     if args.list_equipment:

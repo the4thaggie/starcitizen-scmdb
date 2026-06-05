@@ -47,6 +47,16 @@ def load_data():
     return bp_data, merged
 
 
+def load_wiki_index() -> dict:
+    index = {}
+    for fname in ("quantum_drives.json", "mining_lasers.json"):
+        path = REPO_ROOT / "data" / "wiki" / fname
+        if path.exists():
+            with open(path) as f:
+                index.update(json.load(f))
+    return index
+
+
 def search_blueprints(bp_data, name=None, search=None, size=None, bp_type=None):
     bps = bp_data["blueprints"]
     results = []
@@ -137,6 +147,7 @@ def main():
 
     bp_data, merged = load_data()
     factions = merged["factions"]
+    wiki = load_wiki_index()
 
     matches = search_blueprints(bp_data, name=args.name, search=args.search,
                                  size=args.size, bp_type=args.bp_type)
@@ -182,12 +193,17 @@ def main():
                 faction_name = factions.get(faction_guid, {}).get("name")
 
         tiers = tier_path(faction_name, merged) if faction_name else []
+        bp_name = b.get("productName") or b.get("tag")
+        wiki_entry = wiki.get(bp_name, {})
+
         result = {
             "found": True,
-            "name": b.get("productName") or b.get("tag"),
+            "name": bp_name,
             "manufacturer": b.get("manufacturer"),
             "type": b.get("type"),
             "subtype": b.get("subtype"),
+            "grade": wiki_entry.get("grade"),    # A/B/C/D quality tier (from SC Wiki)
+            "class": wiki_entry.get("class"),    # Military/Civilian/Industrial/Stealth
             "craft_time_seconds": b["tiers"][0]["craftTimeSeconds"] if b.get("tiers") else None,
             "faction": faction_name,
             "min_tier": min_tier,

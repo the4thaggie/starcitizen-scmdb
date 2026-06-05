@@ -49,6 +49,17 @@ def load_blueprints():
         return json.load(f)
 
 
+def load_wiki_index() -> dict:
+    """Load all wiki item files into a single name-keyed lookup."""
+    index = {}
+    for fname in ("quantum_drives.json", "mining_lasers.json"):
+        path = REPO_ROOT / "data" / "wiki" / fname
+        if path.exists():
+            with open(path) as f:
+                index.update(json.load(f))
+    return index
+
+
 def lerp_modifier(quality, modifiers):
     for m in modifiers:
         if m["startQuality"] <= quality <= m["endQuality"]:
@@ -83,6 +94,7 @@ def main():
 
     bp_data = load_blueprints()
     bps = bp_data["blueprints"]
+    wiki = load_wiki_index()
 
     match = next(
         (b for b in bps if (b.get("productName") or "").lower() == args.name.lower()),
@@ -120,15 +132,71 @@ def main():
         }
         slots_out.append(slot_out)
 
+    bp_name = match.get("productName") or match.get("tag")
+
+    # Enrich with SC Wiki base stats if available
+    wiki_entry = wiki.get(bp_name, {})
+    base_stats = None
+    item_class = wiki_entry.get("class")
+    item_grade = wiki_entry.get("grade")
+
+    if wiki_entry:
+        # Build base stats with computed values at each quality checkpoint
+        perf = wiki_entry.get("performance", {})
+        bs = wiki_entry.get("base_stats", {})
+        base_stats = {
+            "grade": item_grade,
+            "class": item_class,
+            "mass_kg": wiki_entry.get("mass_kg"),
+            "health_hp": bs.get("health_hp"),
+            "power_draw": bs.get("power_draw"),
+            "em_signature": bs.get("em_signature"),
+            "repair_time_s": bs.get("repair_time_s"),
+        }
+        # Add type-specific performance stats
+        if wiki_entry.get("type") == "QuantumDrive" or perf.get("drive_speed_mms"):
+            base_stats["performance"] = {
+                "drive_speed_mms": perf.get("drive_speed_mms"),
+                "drive_speed_formatted": perf.get("drive_speed_formatted"),
+                "cooldown_s": perf.get("cooldown_s"),
+                "spool_up_s": perf.get("spool_up_s"),
+                "fuel_per_jump": perf.get("fuel_per_jump"),
+                "fuel_efficiency": perf.get("fuel_efficiency"),
+                "travel_time_10gm": perf.get("travel_time_10gm"),
+            }
+        # Annotate each slot's quality_breakpoints with absolute stat values
+        for slot in slots_out:
+            prop = slot.get("stat_affected")
+            if not prop or not base_stats.get("performance"):
+                continue
+            # Map stat name to base value
+            stat_map = {
+                "Integrity": base_stats.get("health_hp"),
+                "Quantum Speed": perf.get("drive_speed_mms"),
+                "Quantum Fuel Burn": perf.get("fuel_per_jump"),
+            }
+            base_val = stat_map.get(prop)
+            if base_val:
+                unit_map = {
+                    "Integrity": "HP",
+                    "Quantum Speed": "Mm/s",
+                    "Quantum Fuel Burn": "fuel/jump",
+                }
+                for bp_point in slot["quality_breakpoints"]:
+                    bp_point["absolute_value"] = round(base_val * bp_point["modifier"], 4)
+                    bp_point["unit"] = unit_map.get(prop, "")
+
     output = {
         "found": True,
-        "name": match.get("productName") or match.get("tag"),
+        "name": bp_name,
         "manufacturer": match.get("manufacturer"),
         "type": match.get("type"),
         "subtype": match.get("subtype"),
+        "grade": item_grade,
+        "class": item_class,
         "craft_time_seconds": tier.get("craftTimeSeconds"),
+        "base_stats": base_stats,
         "slots": slots_out,
-        "note": "base_stats require SC Wiki API integration (not yet available)",
     }
     print(json.dumps(output, indent=2))
 

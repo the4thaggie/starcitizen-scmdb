@@ -1,0 +1,98 @@
+{
+  "prospector": {
+    "name": "Prospector",
+    "game_name": "MISC Prospector",
+    "uuid": "f68ee841-88d1-46f3-a1e2-5dc71d9d5d97",
+    "manufacturer": "Musashi Industrial & Starflight Concern",
+    "role": "Light Mining",
+    "career": "Industrial",
+    "ore_capacity_scu": 32,
+    "cargo_capacity_scu": 0,
+    "crew_min": 1,
+    "crew_max": 1,
+    "health_hp": 34000,
+    "mass_kg": 142337,
+    "speed": {
+      "scm_ms": 156,
+      "max_ms": 994
+    },
+    "quantum": {
+      "speed_mms": 215.0,
+      "spool_s": 4,
+      "fuel_capacity": 1.8
+    },
+    "fuel": {
+      "capacity": 21,
+      "intake_rate": 13
+    },
+    "insurance": {
+      "claim_time": 9,
+      "expedite_time": 3,
+      "expedite_cost": 3040
+    }
+  },
+  "golem": {
+    "name": "Golem",
+    "game_name": "Drake Golem",
+    "uuid": "b616b3ad-123c-40f2-80bd-b8f4109633aa",
+    "manufacturer": "Drake Interplanetary",
+    "role": "Starter / Light Mining",
+    "career": "Industrial",
+    "ore_capacity_scu": 32,
+    "cargo_capacity_scu": 0,
+    "crew_min": 1,
+    "crew_max": 1,
+    "health_hp": 17300,
+    "mass_kg": 78071,
+    "speed": {
+      "scm_ms": 203,
+      "max_ms": 1010
+    },
+    "quantum": {
+      "speed_mms": 215.0,
+      "spool_s": 4,
+      "fuel_capacity": 0.95
+    },
+    "fuel": {
+      "capacity": 24,
+      "intake_rate": 15
+    },
+    "insurance": {
+      "claim_time": 3,
+      "expedite_time": 0.75,
+      "expedite_cost": 1030
+    }
+  },
+  "mole": {
+    "name": "MOLE",
+    "game_name": "Argo MOLE",
+    "uuid": "ecdfd0df-6c5f-4183-a24b-9e1546e00a4e",
+    "manufacturer": "Argo Astronautics",
+    "role": "Medium Mining",
+    "career": "Industrial",
+    "ore_capacity_scu": 96,
+    "cargo_capacity_scu": 32,
+    "crew_min": 5,
+    "crew_max": 5,
+    "health_hp": 130000,
+    "mass_kg": 883088,
+    "speed": {
+      "scm_ms": 140,
+      "max_ms": 960
+    },
+    "quantum": {
+      "speed_mms": 314.0,
+      "spool_s": 6,
+      "fuel_capacity": 2.6
+    },
+    "fuel": {
+      "capacity": 200,
+      "intake_rate": 0
+    },
+    "insurance": {
+      "claim_time": 13.5,
+      "expedite_time": 4.5,
+      "expedite_cost": 5715
+    }
+  }
+}

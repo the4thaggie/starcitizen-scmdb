@@ -28,7 +28,14 @@
       "Bash(python3 scripts/transform/fabricator.py)",
       "Bash(python3 scripts/transform/resources.py)",
       "Bash(python3 scripts/query/mining_solver.py --ship prospector --rock-material \"Ouratite\" --recommend)",
-      "Bash(python3 scripts/query/mining_solver.py --ship prospector --list-equipment)"
+      "Bash(python3 scripts/query/mining_solver.py --ship prospector --list-equipment)",
+      "Bash(curl -s \"https://api.star-citizen.wiki/api/v2\")",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s \"https://api.star-citizen.wiki/api/vehicles?filter[name]=Prospector\")",
+      "Bash(curl -s \"https://api.star-citizen.wiki/api/items?filter[name]=Yeager&include=components\")",
+      "Bash(curl -sv \"https://api.star-citizen.wiki/api/vehicles?filter[name]=Prospector\")",
+      "WebFetch(domain:api.star-citizen.wiki)",
+      "Bash(python3 scripts/query/blueprint_unlock.py --name \"Yeager\")"
     ]
   }
 }

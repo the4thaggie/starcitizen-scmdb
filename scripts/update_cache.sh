@@ -41,8 +41,12 @@ echo "--- Step 5: Fetch UEX prices (TODO) ---"
 # python3 "$REPO_ROOT/scripts/fetch/uex_api.py"
 
 echo ""
-echo "--- Step 6: Fetch SC Wiki equipment data (TODO) ---"
-# python3 "$REPO_ROOT/scripts/fetch/wiki_api.py"
+echo "--- Step 6: Fetch SC Wiki data ---"
+python3 "$REPO_ROOT/scripts/fetch/wiki_api.py"
+
+echo ""
+echo "--- Step 6b: Transform SC Wiki data ---"
+python3 "$REPO_ROOT/scripts/transform/wiki_items.py"
 
 echo ""
 echo "--- Step 7: Transform mining equipment ---"
