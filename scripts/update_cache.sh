@@ -37,7 +37,7 @@ echo "--- Step 4: Transform resources ---"
 python3 "$REPO_ROOT/scripts/transform/resources.py" "$VERSION"
 
 echo ""
-echo "--- Step 5: Fetch UEX static data (commodities, terminals, refinery methods) ---"
+echo "--- Step 5: Fetch UEX static data (commodities, terminals, refinery methods, yields) ---"
 python3 "$REPO_ROOT/scripts/fetch/uex_api.py"
 
 echo ""

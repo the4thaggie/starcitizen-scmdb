@@ -97,54 +97,87 @@ Re-run without `--system`.
 
 ---
 
-## Step 5 — Sell prices (offer after route is presented)
+## Step 5 — Material acquisition plan (offer after route is presented)
 
-After presenting the mining route, offer:
-> "Want me to check current sell prices and refinery options for these materials?"
+After presenting the mining route, collect two more context items before running:
 
-If yes, run:
+| Item | Question | Default |
+|---|---|---|
+| `refinery_pref` | "Do you prefer the **nearest** refinery, **best yield**, best **economy** (yield minus cost), or **fastest** turnaround?" | `yield` |
+| `refine_what` | "Do you want to refine **everything**, just what you need for the craft (**needed**), or let me decide per-material based on economics (**selective**)?" | `selective` |
+
+Then run:
 ```bash
-python3 scripts/query/commodity_prices.py \
-  --materials "<mat1,mat2,mat3>" \
+python3 scripts/query/material_acquisition_plan.py \
+  --blueprint "<name>" \
+  --ship <prospector|golem|mole> \
+  --location "<mining location>" \
   --system <Stanton|Pyro|Nyx> \
-  --top 3
+  --refinery-pref <nearest|yield|economy|speed> \
+  --refine-what <all|needed|selective>
 ```
 
-**Output keys:**
+**Output keys to present:**
 
 | Key | Use |
 |---|---|
-| `materials.<name>.refined.best_price_sell` | Best aUEC/SCU for refined material — the primary sell target |
-| `materials.<name>.refined.terminals[]` | Top terminals: name, location, price, last_updated |
-| `materials.<name>.raw` | Raw ore buy-back price (if available) — lower but no refinery wait |
-| `refinery_methods[]` | Show as a table: name, yield, cost, speed — user picks based on patience |
-| `nearby_refineries[]` | List the closest refineries in the system |
-| `fetched_at` | Cite this — prices are live, not cached |
-| `auth` | If false: note prices are community-reported, may lag by ~30 min |
+| `materials[].refined_needed_scu` | How much refined material the blueprint needs |
+| `materials[].yield_scenarios` | Raw ore needed under high/medium/low yield — show as table |
+| `materials[].trip_scenarios[]` | Worst/middle/best trips per material — key insight |
+| `materials[].economics.refined_sell_price_per_scu` | Value of refined output |
+| `materials[].economics.worth_refining` | Whether economics support refining vs selling raw |
+| `total_trip_estimates` | Combined trips for ALL materials — usually fewer than per-material |
+| `refineries_ranked[0]` | Best refinery under chosen preference |
+| `refineries_ranked[].net_yields` | Net yield % per material at each terminal |
+| `refineries_ranked[].recommended_methods` | Methods aligned to preference |
+| `refineries_ranked[].travel_min` | Quantum travel time in minutes (nearest pref only) |
+| `selective_refining` | Per-material refine/sell-raw/dump decision with reasoning |
+| `caveats[]` | Always surface all caveats — yield/fee values are approximations |
 
 **Present as:**
 ```
-SELL PRICES (live — as of [fetched_at])
+MATERIAL ACQUISITION PLAN — Yeager  (Prospector, Stanton, yield preference)
 
-Material   │ Refined $/SCU │ Best Terminal             │ Raw $/SCU
-──────────────────────────────────────────────────────────────────
-Borase     │ 31,000        │ Admin - MIC-L1 (Stanton)  │ N/A
-Tungsten   │ 11,000        │ Admin - Nyx Gateway       │ N/A
-Ouratite   │ 46,000        │ TDD - New Babbage         │ N/A
+RAW ORE NEEDED  (to produce required refined quantities)
+Material  │ Need refined │ High yield │ Medium yield │ Low yield │ Best refinery bonus
+──────────────────────────────────────────────────────────────────────────────────────
+Borase    │ 1.24 SCU    │ 1.57 SCU  │ 1.72 SCU    │ 1.94 SCU  │ MIC-L5 +9% → 1.41 SCU
+Tungsten  │ 0.50 SCU    │ 0.63 SCU  │ 0.69 SCU    │ 0.78 SCU  │ no bonus   → 0.63 SCU
+Ouratite  │ 0.50 SCU    │ 0.63 SCU  │ 0.69 SCU    │ 0.78 SCU  │ no bonus   → 0.63 SCU
 
-REFINERY OPTIONS (for raw ore → refined commodity)
-  Dinyx Solventation: high yield, low cost, slow    ← best value if not in a rush
-  Ferron Exchange:    high yield, medium cost, slow ← alternative
-  Gaskin Process:     medium yield, high cost, fast ← if you need the credits quickly
+MINING TRIPS  (total all materials combined: fits in 1 Prospector run)
+  Worst case (low yield, sparse rocks):  2.7 SCU raw → 1 trip
+  Middle case (medium yield):            2.7 SCU raw → 1 trip
+  Best case  (high yield):               2.7 SCU raw → 1 trip
+  Note: Ouratite comes from a different location (Yela/Aberdeen) — plan a 2nd stop.
 
-Nearby Stanton refineries: ARC-L1, ARC-L2, ARC-L3, ARC-L4, ARC-L5 (all Lagrange stations)
+BEST REFINERY — MIC-L5 (Stanton, by yield)
+  Methods: Dinyx Solventation / Ferron Exchange / Pyrometric Chromalysis (all high yield)
+  Borase yield: 88% (base 79% + MIC-L5 +9%)  → need 1.41 SCU raw for 1.24 refined
+  Tungsten:     79%  Ouratite: 79%
+
+SELL PRICES (live)
+  Borase refined:   31,000 aUEC/SCU  @ MIC-L1
+  Tungsten refined: 11,000 aUEC/SCU  @ Nyx Gateway
+  Ouratite refined: 46,000 aUEC/SCU  @ TDD New Babbage
+
+REFINING DECISION (selective mode)
+  ✓ Refine Borase   — refined value 31k >> raw (not traded directly)
+  ✓ Refine Tungsten — refined value 11k >> raw (not traded directly)
+  ✓ Refine Ouratite — refined value 46k >> raw (not traded directly)
+
+⚠ CAVEATS: yield/fee percentages are approximations. Verify exact fee in-game before submitting the refinery job.
 ```
 
+**Multi-location note:**
+If materials come from different locations (check Step 2 route), remind the user:
+> "Borase and Tungsten are at Lagrange A; Ouratite is at Yela Belt or Aberdeen. Plan two stops — collect each at its location before heading to the refinery."
+
 **Refinery method guidance:**
-- For casual miners: recommend **Dinyx Solventation** (high yield, low cost — just takes longer)
-- For time-pressured runs: recommend **Gaskin Process** or **Cormack** (fast, costs more)
-- Never recommend high-cost + slow methods (Pyrometric Chromalysis) unless user asks
+- `yield` pref → Dinyx Solventation (high yield, low cost, slow): best if not time-pressured
+- `speed` pref → Cormack or XCR Reaction (fast but low yield, costs vary)
+- `economy` pref → Dinyx Solventation (high yield, low cost = best net value)
+- User specifies method → pass `--method "<name>"` to override
 
 **Auth note:**
-The skill works without a UEX API token for all price lookups. If `UEX_API_TOKEN` is set in `.env`,
-it will be used for better rate limits. Neither the user nor the agent needs to log in to UEX for prices.
+All UEX price and refinery data is available without a token. `UEX_API_TOKEN` in `.env` only improves rate limits.

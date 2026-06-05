@@ -111,6 +111,44 @@ def main():
         data = get("refineries_methods")
         save(meth_path, data.get("data", []))
 
+    time.sleep(RATE_DELAY)
+
+    # 4. Refinery terminals with IDs (needed for distance calculations)
+    print("\n  Fetching refinery terminals with IDs...")
+    ref_id_path = OUT_DIR / "refinery_terminal_ids.json"
+    if ref_id_path.exists():
+        print("    SKIP (exists)")
+    else:
+        data = get("terminals", {"type": "refinery"})
+        terminals = data.get("data", [])
+        slim = [
+            {
+                "id": t["id"],
+                "name": t.get("name"),
+                "code": t.get("terminal_code") or t.get("code"),
+                "nickname": t.get("nickname"),
+                "star_system_name": t.get("star_system_name"),
+                "planet_name": t.get("planet_name"),
+                "orbit_name": t.get("orbit_name"),
+                "moon_name": t.get("moon_name"),
+                "space_station_name": t.get("space_station_name"),
+                "outpost_name": t.get("outpost_name"),
+            }
+            for t in terminals
+        ]
+        save(ref_id_path, slim)
+
+    time.sleep(RATE_DELAY)
+
+    # 5. Per-terminal refinery yield bonuses per commodity
+    print("\n  Fetching refinery yields...")
+    yields_path = OUT_DIR / "refinery_yields.json"
+    if yields_path.exists():
+        print("    SKIP (exists)")
+    else:
+        data = get("refineries_yields")
+        save(yields_path, data.get("data", []))
+
     print("\nDone.")
     print("Note: Commodity prices are fetched live at query time via scripts/query/commodity_prices.py")
 
