@@ -14,6 +14,9 @@ Usage:
 Supported HUD types:
     reputation  — MobiGlas Reputation tab
                   → faction name, relationship, rank list, in-progress percentage
+    mining      — MOLE / Prospector / Golem mining HUD (RESULTS panel, right side)
+                  → rock stats (mass, RES%, instability, difficulty), composition,
+                    per-material value, cargo current/max/contents
 
 Output (JSON to stdout):
     {
@@ -51,9 +54,11 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 
 from parsers import reputation as _rep
+from parsers import mining as _mining
 
 PARSERS = {
     "reputation": _rep,
+    "mining":     _mining,
 }
 
 

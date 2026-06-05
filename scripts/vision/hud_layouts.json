@@ -8,6 +8,25 @@
     "width_to_height_ratio":  2.030
   },
 
+  "mining": {
+    "_calibration_status": "CALIBRATED — derived from 16:9 1456×816 MOLE screenshot (patch 4.8). Right-anchored, height-relative; verified correct for ultrawide.",
+
+    "_results_panel": {
+      "_note": "RESULTS section on the right side of the mining HUD. Right edge = content right. Width and position scale with content height so the same values apply at 16:9 and 21:9+.",
+      "width_per_content_height": 0.427,
+      "top_frac":                  0.377,
+      "height_frac":               0.511
+    },
+
+    "bar_green": {
+      "_note": "Same HSV green used for the crack-window bar on the mining HUD.",
+      "h_min_deg": 95,
+      "h_max_deg": 145,
+      "s_min": 0.35,
+      "v_min": 0.38
+    }
+  },
+
   "reputation": {
     "_calibration_status": "CALIBRATED — MobiGlas-relative. Validated at 16:9 1920×1080 (patch 4.8). Run calibrate.py to verify at other resolutions.",
 

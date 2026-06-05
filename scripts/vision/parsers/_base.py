@@ -231,6 +231,43 @@ def compute_mobiglas_bounds(
     )
 
 
+def compute_right_panel_bounds(
+    content_left: int,
+    content_top: int,
+    content_right: int,
+    content_bottom: int,
+    panel_config: dict,
+) -> tuple[int, int, int, int]:
+    """
+    Compute bounds for a right-anchored, height-relative HUD panel.
+
+    Used for elements like the mining RESULTS panel that are pinned to the
+    right edge of the screen and scale with screen height regardless of AR.
+
+    panel_config keys:
+      width_per_content_height  — panel width as fraction of content height
+      top_frac                  — panel top as fraction of content height
+      height_frac               — panel height as fraction of content height
+
+    Returns (left, top, right, bottom) in image pixel coordinates.
+    """
+    content_h = content_bottom - content_top
+
+    panel_w = int(panel_config["width_per_content_height"] * content_h)
+    panel_t = content_top + int(panel_config["top_frac"] * content_h)
+    panel_h = int(panel_config["height_frac"] * content_h)
+    panel_r = content_right
+    panel_l = panel_r - panel_w
+    panel_b = panel_t + panel_h
+
+    return (
+        max(content_left,   panel_l),
+        max(content_top,    panel_t),
+        min(content_right,  panel_r),
+        min(content_bottom, panel_b),
+    )
+
+
 def extract_mobiglas(
     img: Image.Image,
     mg_config: dict | None = None,

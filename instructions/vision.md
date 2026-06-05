@@ -33,6 +33,7 @@ Supported HUD types:
 | `--hud` value | In-game screen | What it extracts |
 |---|---|---|
 | `reputation` | MobiGlas → Reputation tab, with a faction selected | Faction name, relationship, rank list, in-progress percentage |
+| `mining`     | MOLE / Prospector / Golem — active mining HUD (any scan or fracture phase) | Rock stats (mass, RES%, instability, difficulty), composition with per-material value, cargo current/max/contents |
 
 **If context makes the HUD type obvious** (user said "reputation tab", "my faction standing", etc.) — proceed directly.
 
@@ -110,6 +111,45 @@ current_rep ≈ in_progress_tier_min + (progress_pct / 100) × (in_progress_tier
 ```
 
 Use `faction_search.py` first if the faction name from OCR is ambiguous (partial match, typo).
+
+---
+
+### Mining result → solver / location handoff
+
+When `hud == "mining"` and parsing succeeds:
+
+1. **Present the rock summary:**
+   ```
+   Rock: [primary_material]
+   Mass: [mass_kg] kg  |  RES: [resistance_pct]%  |  INST: [instability]  → [difficulty]
+   Composition ([composition_scu] SCU total):
+     [pct]%  [material]  — [value] aUEC/SCU
+     ...
+   Cargo: [current_scu] / [max_scu] SCU
+   ```
+
+2. **Offer relevant next steps based on difficulty:**
+
+   | Difficulty | Suggested action |
+   |---|---|
+   | EASY / MEDIUM | Offer to confirm with mining solver (`mining_solver.py`) using their current loadout |
+   | HARD | Warn that this may be at the edge of capability; offer solver + module recommendation |
+   | IMPOSSIBLE | Tell the user this rock cannot be cracked with any standard loadout; suggest skipping or finding a different rock |
+
+3. **If user wants solver confirmation**, load `instructions/mining_solver/index.md` and collect:
+   - Ship (required — ask if not provided; MOLE was visible in screenshot header if captured)
+   - Laser and modules (ask — not parsed from this screenshot; left panel parsing is not yet implemented)
+
+   Pass from the screenshot directly:
+   | solver arg | source |
+   |---|---|
+   | `--rock-mass` | `rock.mass_kg` |
+   | `--rock-material` | `rock.primary_material` |
+
+4. **If INERT MATERIALS percentage is very high (>30%)**, note:
+   > "This rock is over [pct]% inert — low yield. You may want to skip it."
+
+5. **Composition value column** (`value` field in each composition row) represents the approximate aUEC per SCU sell price shown in the HUD. Use it to identify the most and least valuable materials in the rock.
 
 ---
 

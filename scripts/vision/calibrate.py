@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from parsers._base import (
     CANONICAL_HEIGHT,
     compute_mobiglas_bounds,
-    extract_mobiglas,
+    compute_right_panel_bounds,
     find_content_bounds,
     load_image,
     load_layout,
@@ -72,7 +72,16 @@ def main() -> None:
 
     layout = load_layout(args.hud)
 
-    if args.hud == "reputation":
+    if args.hud == "mining":
+        # For the mining HUD we only need to verify the RESULTS panel bounds —
+        # OCR parses the whole panel, so no per-field boxes needed.
+        rp = layout["_results_panel"]
+        rp_bounds = compute_right_panel_bounds(*content_bounds, rp)
+        rl, rt, rr, rb = rp_bounds
+        draw.rectangle([rl, rt, rr - 1, rb - 1], outline="orange", width=3)
+        draw.text((rl + 4, rt + 4), "RESULTS panel (full OCR block)", fill="orange")
+
+    elif args.hud == "reputation":
         ft  = layout["faction_title"]
         mg_rect("faction_title", ft["x"], ft["y"], ft["w"], ft["h"], "cyan")
 

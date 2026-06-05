@@ -5,10 +5,69 @@
 
   "oneOf": [
     { "$ref": "#/definitions/ReputationResult" },
+    { "$ref": "#/definitions/MiningResult" },
     { "$ref": "#/definitions/ErrorResult" }
   ],
 
   "definitions": {
+
+    "MiningResult": {
+      "type": "object",
+      "required": ["hud", "parsed_at", "rock", "cargo", "warnings"],
+      "properties": {
+        "hud":       { "type": "string", "const": "mining" },
+        "parsed_at": { "type": "string", "description": "ISO-8601 UTC timestamp" },
+        "rock": {
+          "type": "object",
+          "required": ["primary_material", "mass_kg", "resistance_pct", "instability", "difficulty", "composition_scu", "composition"],
+          "properties": {
+            "primary_material": { "type": ["string", "null"], "description": "Top-level ore name from the RESULTS header (e.g. 'TUNGSTEN (ORE)')" },
+            "mass_kg":          { "type": ["integer", "null"], "description": "Rock mass in kg" },
+            "resistance_pct":   { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+            "instability":      { "type": ["number",  "null"] },
+            "difficulty":       { "type": ["string",  "null"], "enum": ["EASY", "MEDIUM", "HARD", "VERY HARD", "IMPOSSIBLE", null] },
+            "composition_scu":  { "type": ["number",  "null"], "description": "Total mineable SCU of this rock" },
+            "composition": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/CompositionRow" },
+              "description": "Per-material breakdown, ordered as displayed (highest pct first)"
+            }
+          }
+        },
+        "cargo": {
+          "type": "object",
+          "required": ["current_scu", "max_scu", "contents"],
+          "properties": {
+            "current_scu": { "type": ["number", "null"] },
+            "max_scu":     { "type": ["number", "null"] },
+            "contents": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/CargoItem" }
+            }
+          }
+        },
+        "warnings": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "CompositionRow": {
+      "type": "object",
+      "required": ["pct", "material", "value"],
+      "properties": {
+        "pct":      { "type": "number", "description": "Percentage of rock composition" },
+        "material": { "type": "string" },
+        "value":    { "type": "integer", "description": "Per-SCU sell value displayed in the HUD (aUEC)" }
+      }
+    },
+
+    "CargoItem": {
+      "type": "object",
+      "required": ["material", "scu"],
+      "properties": {
+        "material": { "type": "string" },
+        "scu":      { "type": "number" }
+      }
+    },
 
     "ReputationResult": {
       "type": "object",
