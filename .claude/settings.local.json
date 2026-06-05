@@ -22,7 +22,11 @@
       "Bash(python3 scripts/query/blueprint_materials.py --name \"Yeager\")",
       "Bash(python3 scripts/query/mission_grind_plan.py --faction \"Covalex\" --current-rep 50 --target-tier \"Master\" --system Stanton --ship Prospector --party-size 1)",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(f'  [{t[\\\\\"from_tier\\\\\"]:20}→{t[\\\\\"to_tier\\\\\"]:20}] {t[\\\\\"runs_needed\\\\\"]:4} runs  best={t[\\\\\"best_mission\\\\\"][\\\\\"title\\\\\"][:40] if t[\\\\\"best_mission\\\\\"] else \\\\\"none\\\\\"}'\\) for t in d['tiers']]; print\\(f'TOTAL: {d[\\\\\"total_runs\\\\\"]} runs, ~{d[\\\\\"total_est_hours\\\\\"]}h'\\)\")",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git config *)",
+      "Bash(git commit -m ' *)",
+      "Bash(python3 scripts/transform/fabricator.py)",
+      "Bash(python3 scripts/transform/resources.py)"
     ]
   }
 }

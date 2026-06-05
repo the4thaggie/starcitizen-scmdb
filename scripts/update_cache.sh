@@ -29,12 +29,12 @@ echo "--- Step 2: Transform missions ---"
 python3 "$REPO_ROOT/scripts/transform/missions.py" "$VERSION"
 
 echo ""
-echo "--- Step 3: Transform fabricator (TODO) ---"
-# python3 "$REPO_ROOT/scripts/transform/fabricator.py" "$VERSION"
+echo "--- Step 3: Transform fabricator ---"
+python3 "$REPO_ROOT/scripts/transform/fabricator.py" "$VERSION"
 
 echo ""
-echo "--- Step 4: Transform resources (TODO) ---"
-# python3 "$REPO_ROOT/scripts/transform/resources.py" "$VERSION"
+echo "--- Step 4: Transform resources ---"
+python3 "$REPO_ROOT/scripts/transform/resources.py" "$VERSION"
 
 echo ""
 echo "--- Step 5: Fetch UEX prices (TODO) ---"

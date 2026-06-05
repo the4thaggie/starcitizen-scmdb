@@ -60,6 +60,7 @@ def main():
         (f"{BASE_URL}/crafting_blueprints-{version}.json",     raw_dir / "crafting_blueprints.json"),
         (f"{BASE_URL}/crafting_items-{version}.json",          raw_dir / "crafting_items.json"),
         (f"{BASE_URL}/mission-history-{version}.json",         raw_dir / "mission_history.json"),
+        (f"{BASE_URL}/mining_data-{version}.json",             raw_dir / "mining_data.json"),
     ]
 
     any_downloaded = False
