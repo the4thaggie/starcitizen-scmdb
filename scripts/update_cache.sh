@@ -45,8 +45,8 @@ echo "--- Step 6: Fetch SC Wiki equipment data (TODO) ---"
 # python3 "$REPO_ROOT/scripts/fetch/wiki_api.py"
 
 echo ""
-echo "--- Step 7: Scrape mining solver via Claude in Chrome (TODO) ---"
-# python3 "$REPO_ROOT/scripts/scrape/mining_equipment.py"
+echo "--- Step 7: Transform mining equipment ---"
+python3 "$REPO_ROOT/scripts/transform/mining_equipment.py" "$VERSION"
 
 echo ""
 echo "=== Done. Review data/ then commit: ==="

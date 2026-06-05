@@ -26,7 +26,9 @@
       "Bash(git config *)",
       "Bash(git commit -m ' *)",
       "Bash(python3 scripts/transform/fabricator.py)",
-      "Bash(python3 scripts/transform/resources.py)"
+      "Bash(python3 scripts/transform/resources.py)",
+      "Bash(python3 scripts/query/mining_solver.py --ship prospector --rock-material \"Ouratite\" --recommend)",
+      "Bash(python3 scripts/query/mining_solver.py --ship prospector --list-equipment)"
     ]
   }
 }

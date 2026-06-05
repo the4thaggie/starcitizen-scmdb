@@ -1,37 +1,134 @@
 # Mining Solver Subskill — Entry Point
 
-## When to use this subskill
-Loaded by SKILL.md when the user asks about mining ship configuration, laser/module selection, rock parameters, or computed mining stats.
+Handles: laser selection, module configuration, rock crackability, net stats, loadout recommendations.
+If math is requested, also load `math.md`. For final formatted output, also load `output_formats.md`.
 
-If the user needs math performed, also load `instructions/mining_solver/math.md`.
-When formatting a final recommendation, also load `instructions/mining_solver/output_formats.md`.
+---
 
-## Data files
-- `data/mining/equipment.json` — all lasers, modules, ships and their base stats (patch-stable)
-- `data/mining/<version>.json` — any solver constants that change per patch
-- `schemas/mining.schema.json` — field definitions
+## Step 0 — Identify the archetype
 
-## Mining archetypes
-Three distinct archetypes with different equipment trees:
-- **Ship Mining** — Prospector (1 laser), Golem (1 laser), Mole (1–3 lasers)
-- **ROC/Geo** — vehicle-mounted ground mining
-- **Hand Mining** — multi-tool with mining attachment
+Ask if not clear from context:
+> "Are you ship mining (Prospector, Golem, MOLE), vehicle mining (ROC), or hand mining?"
 
-Always confirm the archetype before proceeding.
+- **Ship mining** → continue below
+- **ROC / hand mining** → note that the solver supports these archetypes in data but query scripts
+  currently focus on ship mining; provide what you can and flag the limitation
 
-## Ship mining configuration flow
-1. Confirm ship selection (Prospector / Golem / Mole)
-2. For Mole: confirm number of active laser operators (1, 2, or 3)
-3. For each laser hardpoint: select mining head from `equipment.json`
-   - Note head-specific module slot count (Arbor: 1, Klein: 0, Helix: 2, etc.)
-4. For each module slot: select passive or active module
-   - Passive: persistent stat modifier while installed
-   - Active: limited charges, consumed on use
-5. Confirm gadget preference (default: no gadgets unless user requests)
-6. Read resulting Stats panel from `data/mining/<version>.json` formulas
+---
 
-## Equipment lookup
-<!-- TODO: expand after equipment.json schema is finalized with full laser/module catalog -->
+## Step 1 — Collect context
 
-## Known gotchas
-<!-- TODO: populate after first scrape and calibration run -->
+| Item | Question | Default |
+|---|---|---|
+| `ship` | "Which ship are you in — Prospector, Golem, or MOLE?" | Must ask |
+| `laser` | "What mining laser are you running?" | Offer list (Step 2a) |
+| `modules` | "What modules do you have installed, if any?" | None — continue without |
+| `rock_material` | "What material are you targeting, or what's the hardest element in the rock?" | Must ask for crackability |
+| `rock_mass` | "What's the rock mass? (Check your ship's scanner)" | 3000 (small), 8000 (medium), 20000 (large) |
+| `gadgets` | "Are you using any gadgets?" | No — never assume gadget use |
+
+**If laser is unknown:** Jump to Step 2a before asking about modules.
+
+---
+
+## Step 2a — List available equipment (when user doesn't know their loadout)
+
+```bash
+python3 scripts/query/mining_solver.py --ship <ship> --list-equipment
+```
+
+**Output keys:**
+
+| Key | Use |
+|---|---|
+| `ship.note` | Surface — explains fixed-laser constraint for Golem |
+| `available_lasers[].name` | Present as options |
+| `available_lasers[].module_slots` | Note how many module slots each has |
+| `available_lasers[].modifiers` | Key stats to compare (instability, window, resistance) |
+| `passive_modules[]` | List for user to pick from |
+| `active_modules[]` | List — note charges are limited |
+| `gadgets[]` | List — but ask before recommending (not all players carry them) |
+
+Present lasers as a table: Name | Slots | Instab mod | Window mod | Resist mod
+
+---
+
+## Step 2b — Recommend a loadout (when user asks "what should I use?")
+
+```bash
+python3 scripts/query/mining_solver.py \
+  --ship <ship> \
+  --rock-material "<material>" \
+  --recommend
+```
+
+**Output keys:**
+
+| Key | Use |
+|---|---|
+| `recommended_laser.name` | State as recommendation |
+| `recommended_laser.module_slots` | How many modules can be added |
+| `recommended_modules[].name` | Module recommendation |
+| `recommended_modules[].type` | Passive (always active) or active (limited charges) |
+| `recommended_modules[].charges` | For active modules — mention charge count |
+| `rationale[]` | Surface all rationale bullets to the user |
+
+---
+
+## Step 3 — Compute net stats for a specific loadout
+
+```bash
+python3 scripts/query/mining_solver.py \
+  --ship <ship> \
+  --laser "<laser name>" \
+  --modules "<module1>" "<module2>" \
+  --rock-mass <mass> \
+  --rock-material "<material>"
+```
+
+**Output keys:**
+
+| Key | Use |
+|---|---|
+| `net_stats.instability` | Net instability after all modifiers |
+| `net_stats.resistance` | Net resistance after all modifiers |
+| `net_stats.window_size_pct` | Green zone width as % of rock capacity |
+| `net_stats.window_min_pct` | Green zone start |
+| `net_stats.window_max_pct` | Green zone end |
+| `net_stats.effective_dps` | Laser output DPS |
+| `net_stats.difficulty` | `easy` \| `moderate` \| `hard` \| `very hard` |
+| `net_stats.crackable` | Boolean |
+| `net_stats.assessment[]` | Surface all — explains why difficulty rating |
+| `warnings[]` | Surface any — module slot overages, missing equipment |
+| `tips[]` | Surface all — practical in-game advice |
+
+If math detail is needed (e.g., user asks "why is the window so narrow?"), load `math.md`.
+
+---
+
+## Step 4 — Present results
+
+Load `output_formats.md` for the exact table format.
+
+Always state:
+> "These stats use [material] as the rock element. Real rocks are mixed compositions — your actual stats will vary. The SCMDB solver at scmdb.net/?page=solver gives exact numbers for a specific rock composition."
+
+---
+
+## Branching rules
+
+**Golem:** Fixed Pitman laser — skip laser selection, go straight to module selection.
+> "The Golem runs a fixed Pitman Mining Laser — only modules are configurable."
+
+**MOLE multi-crew:** Each laser operates independently. Ask:
+> "How many operators are running lasers — 1, 2, or 3?"
+Then run the solver per-laser, not combined. Combined DPS = n × single laser DPS.
+
+**Rock mass unknown:** Use the qualitative defaults (small/medium/large) and note the assumption.
+> "I'm using medium rock mass (8,000 kg) as a baseline. Your actual crack time will scale with rock mass."
+
+**Material not found:**
+> "I don't have '[material]' in my mining data. Could you check the exact spelling? Common ones: Ouratite, Borase, Tungsten, Bexalite, Laranite, Quantainium."
+
+**Gadgets:** Never recommend gadgets without asking first.
+> "Gadgets like OptiMax or Waveshift can significantly ease the crack. Do you carry gadgets? (If yes, I can factor them in.)"

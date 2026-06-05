@@ -61,6 +61,7 @@ def main():
         (f"{BASE_URL}/crafting_items-{version}.json",          raw_dir / "crafting_items.json"),
         (f"{BASE_URL}/mission-history-{version}.json",         raw_dir / "mission_history.json"),
         (f"{BASE_URL}/mining_data-{version}.json",             raw_dir / "mining_data.json"),
+        (f"{BASE_URL}/mining_equipment-{version}.json",        raw_dir / "mining_equipment.json"),
     ]
 
     any_downloaded = False

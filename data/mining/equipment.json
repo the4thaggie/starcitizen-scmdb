@@ -1,0 +1,824 @@
+{
+  "version": "4.8.1-live.11875683",
+  "ships": {
+    "prospector": {
+      "name": "Prospector",
+      "manufacturer": "MISC",
+      "archetype": "ship",
+      "laser_slots": 1,
+      "laser_size": 1,
+      "cargo_scu": 12,
+      "note": "Solo ship miner. 1 configurable S1 laser slot."
+    },
+    "golem": {
+      "name": "Golem",
+      "manufacturer": "Drake Interplanetary",
+      "archetype": "ship",
+      "laser_slots": 1,
+      "laser_size": 1,
+      "cargo_scu": 12,
+      "fixed_laser": "Pitman Mining Laser",
+      "note": "Solo ship miner. Fixed S1 Pitman laser \u2014 cannot swap laser head. Modules still configurable."
+    },
+    "mole": {
+      "name": "MOLE",
+      "manufacturer": "Argo Astronautics",
+      "archetype": "ship",
+      "laser_slots": 3,
+      "laser_size": 2,
+      "cargo_scu": 96,
+      "note": "Multi-crew S2 miner. Up to 3 operators, each controlling one S2 laser independently."
+    }
+  },
+  "lasers": [
+    {
+      "name": "Pitman Mining Laser",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Drake Interplanetary",
+      "module_slots": 2,
+      "vehicle_built_in": null,
+      "dps": 3150.0,
+      "full_damage_range_m": 40.0,
+      "modifiers": {
+        "instability_pct": 35.0,
+        "opt_window_size_pct": 40.0,
+        "resistance_pct": 25.0,
+        "opt_charge_rate_pct": -40.0,
+        "filter_pct": 40.0
+      }
+    },
+    {
+      "name": "Arbor MHV Mining Laser",
+      "size": 0,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "module_slots": 2,
+      "vehicle_built_in": null,
+      "dps": 0.8,
+      "full_damage_range_m": 5.0,
+      "modifiers": {
+        "instability_pct": -40.0,
+        "opt_window_size_pct": 0.0,
+        "resistance_pct": 0.0,
+        "opt_charge_rate_pct": 0.0,
+        "filter_pct": 0.0
+      }
+    },
+    {
+      "name": "Arbor MH1 Mining Laser",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Greycat Industrial",
+      "module_slots": 1,
+      "vehicle_built_in": null,
+      "dps": 1890.0,
+      "full_damage_range_m": 60.0,
+      "modifiers": {
+        "instability_pct": -35.0,
+        "opt_window_size_pct": 40.0,
+        "resistance_pct": 25.0,
+        "opt_charge_rate_pct": 0.0,
+        "filter_pct": 30.0
+      }
+    },
+    {
+      "name": "Arbor MH2 Mining Laser",
+      "size": 2,
+      "grade": 1,
+      "manufacturer": "Greycat Industrial",
+      "module_slots": 2,
+      "vehicle_built_in": null,
+      "dps": 2400.0,
+      "full_damage_range_m": 90.0,
+      "modifiers": {
+        "instability_pct": -35.0,
+        "opt_window_size_pct": 40.0,
+        "resistance_pct": 25.0,
+        "opt_charge_rate_pct": 0.0,
+        "filter_pct": 40.0
+      }
+    },
+    {
+      "name": "Lancet MH1 Mining Laser",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "module_slots": 1,
+      "vehicle_built_in": null,
+      "dps": 2520.0,
+      "full_damage_range_m": 30.0,
+      "modifiers": {
+        "instability_pct": -10.0,
+        "opt_window_size_pct": -60.0,
+        "resistance_pct": 0.0,
+        "opt_charge_rate_pct": 40.0,
+        "filter_pct": 30.0
+      }
+    },
+    {
+      "name": "Lancet MH2 Mining Laser",
+      "size": 2,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "module_slots": 2,
+      "vehicle_built_in": null,
+      "dps": 3600.0,
+      "full_damage_range_m": 45.0,
+      "modifiers": {
+        "instability_pct": -10.0,
+        "opt_window_size_pct": -60.0,
+        "resistance_pct": 0.0,
+        "opt_charge_rate_pct": 40.0,
+        "filter_pct": 40.0
+      }
+    },
+    {
+      "name": "Arbor MH1 Mining Laser",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Greycat Industrial",
+      "module_slots": 1,
+      "vehicle_built_in": "ARGO MPUV-1T",
+      "dps": 1850.0,
+      "full_damage_range_m": 30.0,
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": 0.0,
+        "resistance_pct": 0.0,
+        "opt_charge_rate_pct": 0.0,
+        "filter_pct": 0.0
+      }
+    },
+    {
+      "name": "S00 Hofstede",
+      "size": 0,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "module_slots": 2,
+      "vehicle_built_in": null,
+      "dps": 0.8,
+      "full_damage_range_m": 8.0,
+      "modifiers": {
+        "instability_pct": 30.0,
+        "opt_window_size_pct": 40.0,
+        "resistance_pct": -40.0,
+        "opt_charge_rate_pct": 20.0,
+        "filter_pct": 0.0
+      }
+    },
+    {
+      "name": "Hofstede-S1 Mining Laser",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "module_slots": 1,
+      "vehicle_built_in": null,
+      "dps": 2100.0,
+      "full_damage_range_m": 45.0,
+      "modifiers": {
+        "instability_pct": 10.0,
+        "opt_window_size_pct": 60.0,
+        "resistance_pct": -30.0,
+        "opt_charge_rate_pct": 20.0,
+        "filter_pct": 30.0
+      }
+    },
+    {
+      "name": "Hofstede-S2 Mining Laser",
+      "size": 2,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "module_slots": 2,
+      "vehicle_built_in": null,
+      "dps": 3360.0,
+      "full_damage_range_m": 60.0,
+      "modifiers": {
+        "instability_pct": 10.0,
+        "opt_window_size_pct": 60.0,
+        "resistance_pct": -30.0,
+        "opt_charge_rate_pct": 20.0,
+        "filter_pct": 40.0
+      }
+    },
+    {
+      "name": "Lawson Mining Laser",
+      "size": 0,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "module_slots": 2,
+      "vehicle_built_in": null,
+      "dps": 0.8,
+      "full_damage_range_m": 5.0,
+      "modifiers": {
+        "instability_pct": 30.0,
+        "opt_window_size_pct": 40.0,
+        "resistance_pct": -40.0,
+        "opt_charge_rate_pct": 0.0,
+        "filter_pct": 0.0
+      }
+    },
+    {
+      "name": "Klein-S1 Mining Laser",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "module_slots": 0,
+      "vehicle_built_in": null,
+      "dps": 2520.0,
+      "full_damage_range_m": 45.0,
+      "modifiers": {
+        "instability_pct": 35.0,
+        "opt_window_size_pct": 20.0,
+        "resistance_pct": -45.0,
+        "opt_charge_rate_pct": 0.0,
+        "filter_pct": 30.0
+      }
+    },
+    {
+      "name": "Klein-S2 Mining Laser",
+      "size": 2,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "module_slots": 1,
+      "vehicle_built_in": null,
+      "dps": 3600.0,
+      "full_damage_range_m": 60.0,
+      "modifiers": {
+        "instability_pct": 35.0,
+        "opt_window_size_pct": 20.0,
+        "resistance_pct": -45.0,
+        "opt_charge_rate_pct": 0.0,
+        "filter_pct": 40.0
+      }
+    },
+    {
+      "name": "S0 Helix",
+      "size": 0,
+      "grade": 1,
+      "manufacturer": "Thermyte Concern",
+      "module_slots": 2,
+      "vehicle_built_in": null,
+      "dps": 1.0,
+      "full_damage_range_m": 8.0,
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": -40.0,
+        "resistance_pct": 0.0,
+        "opt_charge_rate_pct": 20.0,
+        "filter_pct": 0.0
+      }
+    },
+    {
+      "name": "Helix I Mining Laser",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Thermyte Concern",
+      "module_slots": 2,
+      "vehicle_built_in": null,
+      "dps": 3150.0,
+      "full_damage_range_m": 15.0,
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": -40.0,
+        "resistance_pct": -30.0,
+        "opt_charge_rate_pct": 0.0,
+        "filter_pct": 30.0
+      }
+    },
+    {
+      "name": "Helix II Mining Laser",
+      "size": 2,
+      "grade": 1,
+      "manufacturer": "Thermyte Concern",
+      "module_slots": 3,
+      "vehicle_built_in": null,
+      "dps": 4080.0,
+      "full_damage_range_m": 30.0,
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": -40.0,
+        "resistance_pct": -30.0,
+        "opt_charge_rate_pct": 0.0,
+        "filter_pct": 40.0
+      }
+    },
+    {
+      "name": "Impact I Mining Laser",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Thermyte Concern",
+      "module_slots": 2,
+      "vehicle_built_in": null,
+      "dps": 2100.0,
+      "full_damage_range_m": 45.0,
+      "modifiers": {
+        "instability_pct": -10.0,
+        "opt_window_size_pct": 20.0,
+        "resistance_pct": 10.0,
+        "opt_charge_rate_pct": -40.0,
+        "filter_pct": 30.0
+      }
+    },
+    {
+      "name": "Impact II Mining Laser",
+      "size": 2,
+      "grade": 1,
+      "manufacturer": "Thermyte Concern",
+      "module_slots": 3,
+      "vehicle_built_in": null,
+      "dps": 3360.0,
+      "full_damage_range_m": 60.0,
+      "modifiers": {
+        "instability_pct": -10.0,
+        "opt_window_size_pct": 20.0,
+        "resistance_pct": 10.0,
+        "opt_charge_rate_pct": -40.0,
+        "filter_pct": 40.0
+      }
+    }
+  ],
+  "passive_modules": [
+    {
+      "name": "FLTR Module",
+      "type": "passive",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": 0.0,
+        "resistance_pct": 0.0
+      }
+    },
+    {
+      "name": "FLTR-L Module",
+      "type": "passive",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": 0.0,
+        "resistance_pct": 0.0
+      }
+    },
+    {
+      "name": "FLTR-XL Module",
+      "type": "passive",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": 0.0,
+        "resistance_pct": 0.0
+      }
+    },
+    {
+      "name": "Focus Module",
+      "type": "passive",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Thermyte Concern",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": 30.0,
+        "resistance_pct": 0.0
+      }
+    },
+    {
+      "name": "Focus II Module",
+      "type": "passive",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Thermyte Concern",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": 37.0,
+        "resistance_pct": 0.0
+      }
+    },
+    {
+      "name": "Focus III Module",
+      "type": "passive",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Thermyte Concern",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": 40.0,
+        "resistance_pct": 0.0
+      }
+    },
+    {
+      "name": "Rieger Module",
+      "type": "passive",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": -10.0,
+        "resistance_pct": 0.0
+      }
+    },
+    {
+      "name": "Rieger-C2 Module",
+      "type": "passive",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": -3.0,
+        "resistance_pct": 0.0
+      }
+    },
+    {
+      "name": "Rieger-C3 Module",
+      "type": "passive",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": -1.0,
+        "resistance_pct": 0.0
+      }
+    },
+    {
+      "name": "Torrent Module",
+      "type": "passive",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Thermyte Concern",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": -10.0,
+        "resistance_pct": 0.0
+      }
+    },
+    {
+      "name": "Torrent II Module",
+      "type": "passive",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Thermyte Concern",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": -3.0,
+        "resistance_pct": 0.0
+      }
+    },
+    {
+      "name": "Torrent III Module",
+      "type": "passive",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Thermyte Concern",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": -1.0,
+        "resistance_pct": 0.0
+      }
+    },
+    {
+      "name": "Vaux Module",
+      "type": "passive",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": 0.0,
+        "resistance_pct": 0.0
+      }
+    },
+    {
+      "name": "Vaux-C2 Module",
+      "type": "passive",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": 0.0,
+        "resistance_pct": 0.0
+      }
+    },
+    {
+      "name": "Vaux-C3 Module",
+      "type": "passive",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": 0.0,
+        "resistance_pct": 0.0
+      }
+    },
+    {
+      "name": "XTR Module",
+      "type": "passive",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": 15.0,
+        "resistance_pct": 0.0
+      }
+    },
+    {
+      "name": "XTR-L Module",
+      "type": "passive",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": 22.0,
+        "resistance_pct": 0.0
+      }
+    },
+    {
+      "name": "XTR-XL Module",
+      "type": "passive",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": 25.0,
+        "resistance_pct": 0.0
+      }
+    }
+  ],
+  "active_modules": [
+    {
+      "name": "Brandt Module",
+      "type": "active",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Greycat Industrial",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": 0.0,
+        "resistance_pct": 15.5
+      },
+      "charges": 5,
+      "lifetime_s": 60.0,
+      "mining_damage_multiplier": 1.35
+    },
+    {
+      "name": "Forel Module",
+      "type": "active",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": 0.0,
+        "resistance_pct": 15.5
+      },
+      "charges": 6,
+      "lifetime_s": 60.0,
+      "mining_damage_multiplier": 1.0
+    },
+    {
+      "name": "Lifeline Module",
+      "type": "active",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": -20.0,
+        "opt_window_size_pct": 0.0,
+        "resistance_pct": -15.5
+      },
+      "charges": 3,
+      "lifetime_s": 15.0,
+      "mining_damage_multiplier": 1.0
+    },
+    {
+      "name": "Optimum Module",
+      "type": "active",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": -10.0,
+        "opt_window_size_pct": 0.0,
+        "resistance_pct": 0.0
+      },
+      "charges": 5,
+      "lifetime_s": 60.0,
+      "mining_damage_multiplier": 0.85
+    },
+    {
+      "name": "Rime Module",
+      "type": "active",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": 0.0,
+        "resistance_pct": -24.8
+      },
+      "charges": 10,
+      "lifetime_s": 20.0,
+      "mining_damage_multiplier": 0.85
+    },
+    {
+      "name": "Stampede Module",
+      "type": "active",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Thermyte Concern",
+      "modifiers": {
+        "instability_pct": -10.0,
+        "opt_window_size_pct": 0.0,
+        "resistance_pct": 0.0
+      },
+      "charges": 6,
+      "lifetime_s": 30.0,
+      "mining_damage_multiplier": 1.35
+    },
+    {
+      "name": "Surge Module",
+      "type": "active",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Thermyte Concern",
+      "modifiers": {
+        "instability_pct": 10.0,
+        "opt_window_size_pct": 0.0,
+        "resistance_pct": -15.5
+      },
+      "charges": 7,
+      "lifetime_s": 15.0,
+      "mining_damage_multiplier": 1.5
+    },
+    {
+      "name": "Torpid Module",
+      "type": "active",
+      "size": 1,
+      "grade": 1,
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": 0.0,
+        "resistance_pct": 0.0
+      },
+      "charges": 5,
+      "lifetime_s": 60.0,
+      "mining_damage_multiplier": 1.0
+    }
+  ],
+  "gadgets": [
+    {
+      "name": "OptiMax",
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": -30.0,
+        "resistance_pct": -25.0
+      },
+      "note": "Placed on the rock before fracturing. Ask user before recommending \u2014 not all players use gadgets."
+    },
+    {
+      "name": "Waveshift",
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": -35.0,
+        "opt_window_size_pct": 100.0,
+        "resistance_pct": 0.0
+      },
+      "note": "Placed on the rock before fracturing. Ask user before recommending \u2014 not all players use gadgets."
+    },
+    {
+      "name": "Okunis",
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": 0.0,
+        "opt_window_size_pct": 50.0,
+        "resistance_pct": 0.0
+      },
+      "note": "Placed on the rock before fracturing. Ask user before recommending \u2014 not all players use gadgets."
+    },
+    {
+      "name": "Sabir",
+      "manufacturer": "Shubin Interstellar",
+      "modifiers": {
+        "instability_pct": 15.0,
+        "opt_window_size_pct": 50.0,
+        "resistance_pct": -50.0
+      },
+      "note": "Placed on the rock before fracturing. Ask user before recommending \u2014 not all players use gadgets."
+    },
+    {
+      "name": "BoreMax",
+      "manufacturer": "Thermyte Concern",
+      "modifiers": {
+        "instability_pct": -70.0,
+        "opt_window_size_pct": 0.0,
+        "resistance_pct": 10.0
+      },
+      "note": "Placed on the rock before fracturing. Ask user before recommending \u2014 not all players use gadgets."
+    },
+    {
+      "name": "Stalwart",
+      "manufacturer": "Thermyte Concern",
+      "modifiers": {
+        "instability_pct": -35.0,
+        "opt_window_size_pct": -30.0,
+        "resistance_pct": 0.0
+      },
+      "note": "Placed on the rock before fracturing. Ask user before recommending \u2014 not all players use gadgets."
+    }
+  ],
+  "global_params": {
+    "ship": {
+      "powerCapacityPerMass": 10.0,
+      "decayPerMass": 0.2,
+      "optimalWindowSize": 0.1,
+      "optimalWindowFactor": 0.75,
+      "resistanceCurveFactor": 0.6,
+      "optimalWindowThinnessCurveFactor": 0.7,
+      "optimalWindowMaxSize": 0.5,
+      "controlledBreakingFillRate": 0.5,
+      "controlledBreakingFillRateDanger": 0.7,
+      "controlledBreakingDecayRate": 0.5,
+      "dangerBreakingFillRate": 0.3,
+      "dangerBreakingFillRateExponent": 2.0,
+      "dangerBreakingDecayRate": 0.1,
+      "cSCUPerVolume": 0.7,
+      "defaultMass": 100.0,
+      "instabilityWavePeriod": 3.0,
+      "instabilityWaveVariance": 1.0,
+      "instabilityCurveFactor": 1.0,
+      "defaultVolume": 5122.499,
+      "dangerPoolFactor": 560.0
+    },
+    "fps": {
+      "powerCapacityPerMass": 5.0,
+      "decayPerMass": 0.2,
+      "optimalWindowSize": 0.5,
+      "optimalWindowFactor": 0.5,
+      "resistanceCurveFactor": 0.33,
+      "optimalWindowThinnessCurveFactor": 0.7,
+      "optimalWindowMaxSize": 0.7,
+      "controlledBreakingFillRate": 0.5,
+      "controlledBreakingFillRateDanger": 0.7,
+      "controlledBreakingDecayRate": 0.5,
+      "dangerBreakingFillRate": 0.3,
+      "dangerBreakingFillRateExponent": 2.0,
+      "dangerBreakingDecayRate": 0.3,
+      "cSCUPerVolume": 3.0,
+      "defaultMass": 0.001,
+      "instabilityWavePeriod": 3.0,
+      "instabilityWaveVariance": 1.0,
+      "instabilityCurveFactor": 1.0,
+      "defaultVolume": 1.0,
+      "dangerPoolFactor": 80.0
+    },
+    "vehicle": {
+      "powerCapacityPerMass": 4.0,
+      "decayPerMass": 0.2,
+      "optimalWindowSize": 0.4,
+      "optimalWindowFactor": 0.5,
+      "resistanceCurveFactor": 0.33,
+      "optimalWindowThinnessCurveFactor": 1.0,
+      "optimalWindowMaxSize": 0.5,
+      "controlledBreakingFillRate": 0.5,
+      "controlledBreakingFillRateDanger": 0.7,
+      "controlledBreakingDecayRate": 0.5,
+      "dangerBreakingFillRate": 0.3,
+      "dangerBreakingFillRateExponent": 2.0,
+      "dangerBreakingDecayRate": 0.3,
+      "cSCUPerVolume": 3.0,
+      "defaultMass": 0.001,
+      "instabilityWavePeriod": 3.0,
+      "instabilityWaveVariance": 1.0,
+      "instabilityCurveFactor": 1.0,
+      "defaultVolume": 4.0,
+      "dangerPoolFactor": 560.0
+    },
+    "laser": {
+      "throttleChangePerAction": 0.01,
+      "throttleAccPeriod": 0.1,
+      "throttleAccFactor": 2.0,
+      "throttleHoldAccFactor": 0.25
+    }
+  },
+  "notes": {
+    "modifiers": "All modifier values are percentage adjustments to the rock's base stat (e.g., instability_pct: -35 means net instability = rock_instability \u00d7 0.65).",
+    "module_slots": "Each laser has a fixed number of module slots. Modules fill these slots \u2014 total active + passive cannot exceed slot count.",
+    "gadgets": "Placed on the rock itself, not the laser. Ask the user before suggesting gadgets \u2014 not all players carry them.",
+    "golem_fixed_laser": "The Golem's Pitman laser cannot be swapped. Only modules are configurable for the Golem.",
+    "mole_multi_crew": "Each MOLE laser is controlled independently by one operator. Stats are per-laser, not combined."
+  }
+}
