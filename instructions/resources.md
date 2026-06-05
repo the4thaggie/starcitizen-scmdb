@@ -179,5 +179,5 @@ If materials come from different locations (check Step 2 route), remind the user
 - `economy` pref → Dinyx Solventation (high yield, low cost = best net value)
 - User specifies method → pass `--method "<name>"` to override
 
-**Auth note:**
-All UEX price and refinery data is available without a token. `UEX_API_TOKEN` in `.env` only improves rate limits.
+**Data availability:**
+All UEX price and refinery endpoints used by this skill are public. No account or API key is required. Prices are community-reported and typically update within 30 minutes of in-game changes.

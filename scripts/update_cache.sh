@@ -1,19 +1,14 @@
 #!/usr/bin/env bash
-# Full cache refresh — fetch raw SCMDB data then transform into AI-ready JSON.
+# Full cache refresh — fetch raw SCMDB and SC Wiki data then transform into AI-ready JSON.
 # Run when the game patches and data/VERSION is stale.
 #
 # Requirements:
-#   - Internet access (scmdb.net)
-#   - .env with UEX_API_TOKEN (for UEX price fetch step)
+#   - Internet access (scmdb.net, api.star-citizen.wiki, api.uexcorp.uk)
 #   - Python 3.x
 #   - Claude in Chrome active + logged into scmdb.net (for mining solver scrape)
 
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-
-source "$REPO_ROOT/.env" 2>/dev/null || {
-  echo "WARNING: .env not found — UEX fetch will be skipped."
-}
 
 echo "=== SCMDB Cache Update ==="
 

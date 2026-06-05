@@ -38,7 +38,6 @@ Output (JSON):
 import argparse
 import datetime
 import json
-import os
 import sys
 import time
 import urllib.parse
@@ -50,22 +49,17 @@ BASE_URL = "https://api.uexcorp.uk/2.0"
 RATE_DELAY = 0.4
 
 
-def make_headers() -> dict:
-    h = {
-        "User-Agent": "starcitizen-scmdb/1.0",
-        "Accept": "application/json",
-    }
-    token = os.environ.get("UEX_API_TOKEN", "").strip()
-    if token:
-        h["Authorization"] = f"Bearer {token}"
-    return h
+HEADERS = {
+    "User-Agent": "starcitizen-scmdb/1.0",
+    "Accept": "application/json",
+}
 
 
 def api_get(path: str, params: dict = None) -> list | dict:
     url = f"{BASE_URL}/{path}"
     if params:
         url += "?" + urllib.parse.urlencode(params)
-    req = urllib.request.Request(url, headers=make_headers())
+    req = urllib.request.Request(url, headers=HEADERS)
     with urllib.request.urlopen(req, timeout=20) as resp:
         data = json.loads(resp.read())
     return data.get("data", [])
@@ -198,7 +192,6 @@ def main():
     commodity_index = load_commodities()
     methods = load_refinery_methods()
     nearby_refineries = load_refinery_terminals(args.system)
-    using_auth = bool(os.environ.get("UEX_API_TOKEN", "").strip())
 
     material_names = [m.strip() for m in args.materials.split(",")]
     results = {}
@@ -239,7 +232,6 @@ def main():
     print(json.dumps({
         "fetched_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "system_filter": args.system or "all",
-        "auth": using_auth,
         "note": "Prices update ~every 30 minutes. raw = sell ore directly; refined = refinery first (better price, costs time + fees).",
         "materials": results,
         "refinery_methods": method_summary,

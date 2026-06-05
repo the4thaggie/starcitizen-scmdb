@@ -31,7 +31,6 @@ Notes:
 import argparse
 import json
 import math
-import os
 import sys
 import time
 import urllib.parse
@@ -203,19 +202,20 @@ def get_ship_quantum_speed_gms(ship_name: str, wiki_ships: dict) -> float:
     return FALLBACK_QD_SPEED_GMS.get(ship_name.lower(), 0.215)
 
 
+_UEX_HEADERS = {"User-Agent": "starcitizen-scmdb/1.0", "Accept": "application/json"}
+
+
 def fetch_terminal_distance(origin_id: int, dest_id: int) -> float | None:
-    """Fetch distance in Gm between two terminals from UEX API."""
-    url = f"https://api.uexcorp.uk/2.0/terminals_distances"
+    """Fetch distance in Gm between two terminals from UEX API (public endpoint)."""
     params = urllib.parse.urlencode({
         "id_terminal_origin": origin_id,
         "id_terminal_destination": dest_id,
     })
-    headers = {"User-Agent": "starcitizen-scmdb/1.0", "Accept": "application/json"}
-    token = os.environ.get("UEX_API_TOKEN", "").strip()
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
     try:
-        req = urllib.request.Request(f"{url}?{params}", headers=headers)
+        req = urllib.request.Request(
+            f"https://api.uexcorp.uk/2.0/terminals_distances?{params}",
+            headers=_UEX_HEADERS,
+        )
         with urllib.request.urlopen(req, timeout=10) as r:
             data = json.loads(r.read())
         dist = data.get("data", {}).get("distance")

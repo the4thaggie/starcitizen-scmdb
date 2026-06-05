@@ -57,7 +57,7 @@ Load `instructions/resources.md` and follow its workflow.
 | System | "Which system are you currently in?" | Run all, note it |
 | Ship | "What mining ship are you flying?" | "unknown" — flag capability warnings |
 
-**Sell prices:** After presenting the mining route, offer to fetch live sell prices via `commodity_prices.py`. No token required — prices are always available.
+**Sell prices:** After presenting the mining route, offer to run the full material acquisition plan via `material_acquisition_plan.py`. All UEX endpoints are public — no setup required.
 
 ---
 

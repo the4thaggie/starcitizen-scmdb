@@ -2,22 +2,20 @@
 """
 Fetches static reference data from the UEX Corp API (api.uexcorp.uk/2.0).
 Static data = changes only on game patch, safe to commit to the repo.
-
-No authentication required for any of these endpoints.
-If UEX_API_TOKEN is set in the environment, it is sent as a Bearer token
-for better rate limits, but is not required.
+All endpoints used here are public — no authentication required.
 
 Usage:
     python3 scripts/fetch/uex_api.py
 
 Fetches:
-    - All commodities        → data/uex/commodities.json
-    - All refinery terminals → data/uex/refinery_terminals.json
-    - Refinery methods       → data/uex/refinery_methods.json
+    - All commodities           → data/uex/commodities.json
+    - Refinery terminals        → data/uex/refinery_terminals.json
+    - Refinery methods          → data/uex/refinery_methods.json
+    - Refinery terminal IDs     → data/uex/refinery_terminal_ids.json
+    - Refinery yield bonuses    → data/uex/refinery_yields.json
 """
 
 import json
-import os
 import sys
 import time
 import urllib.request
@@ -31,22 +29,17 @@ BASE_URL = "https://api.uexcorp.uk/2.0"
 RATE_DELAY = 0.5
 
 
-def make_headers() -> dict:
-    headers = {
-        "User-Agent": "starcitizen-scmdb/1.0 (github.com/the4thaggie/starcitizen-scmdb)",
-        "Accept": "application/json",
-    }
-    token = os.environ.get("UEX_API_TOKEN", "").strip()
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
-    return headers
+HEADERS = {
+    "User-Agent": "starcitizen-scmdb/1.0 (github.com/the4thaggie/starcitizen-scmdb)",
+    "Accept": "application/json",
+}
 
 
 def get(path: str, params: dict = None) -> dict:
     url = f"{BASE_URL}/{path}"
     if params:
         url += "?" + urllib.parse.urlencode(params)
-    req = urllib.request.Request(url, headers=make_headers())
+    req = urllib.request.Request(url, headers=HEADERS)
     with urllib.request.urlopen(req, timeout=30) as resp:
         return json.loads(resp.read())
 
@@ -60,8 +53,7 @@ def save(dest: Path, data) -> None:
 
 
 def main():
-    using_token = bool(os.environ.get("UEX_API_TOKEN", "").strip())
-    print(f"=== UEX API Fetch {'(authenticated)' if using_token else '(no token — public endpoints only)'} ===")
+    print("=== UEX API Fetch ===")
 
     # 1. All commodities — name/code/ID mapping, is_raw/is_mineral flags
     print("\n  Fetching commodities...")

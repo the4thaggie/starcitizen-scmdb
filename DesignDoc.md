@@ -1,3 +1,24 @@
+# starcitizen-scmdb Design Document
+
+## Future features (UEX Corp token required)
+
+The following capabilities require a UEX Corp Bearer token and are intentionally out of scope for the initial release. All current skill features use only public endpoints and need no setup from the user.
+
+| Feature | UEX endpoint | Why gated |
+|---|---|---|
+| Blueprint ownership tracking | User account data | Requires login to SCMDB + UEX sync |
+| "Owned vs. unowned" blueprint display | `user_data` | Account-specific |
+| Personal trade history and P&L | `user_trades` | Account-specific |
+| Price submission to community DB | `post_data_submit` | Requires trusted contributor status |
+| Price alerts and watchlists | `user_notifications` | Account-specific |
+| Faction reputation sync | SCMDB user profile | Requires SCMDB login |
+
+When implementing these, the token goes in `.env` (gitignored). See `.env.example` for setup instructions.
+
+---
+
+## Original scope notes
+
 Let me tell you about the core functionalities of the site.  We'' start with the categories (from the drop-down list).  You will need to figure out how best to plan and scope based on the complexity of the project as it develops.  This all informs a comprehensive skill development for production use and community sharing.  There may be multiple planning stints, threads, etc so there needs to be a master planning document and branching organization and version history.  Since SCMDB does not appear to have an API, you are building the tooling (at as efficient a token cost to the end user as possible) for scraping the site for the individual's needs).  The title of the skill be starcitizen-scmdb:
 
 1.  Missions:  Allows users to filter available missions based on criteria and plan a reputation grinding plan (Rank Path Planner).  Filtered Missions appear in the main body of the page and popup a window when clicked.  Within the opened window, you have title/faction/tags then 4 tabs (Overview, Requirements, Calculator, Community).  You will need to go and build this flow to understand it fully.  
