@@ -1,0 +1,173 @@
+# =============================================================================
+# CASES — Resources branch (mining locations, routes, acquisition plan)
+# Anchors: SKILL.md:50-63, instructions/resources.md
+# =============================================================================
+category: resources
+category_weight_hint: 1.0
+
+cases:
+
+  - id: resources-001
+    title: "Slang material lookup ('quant') with no system/ship given"
+    difficulty: easy
+    tags: [human_speak, routing, defaults, one_question_rule]
+    scenario:
+      user_persona: "New miner, slangy."
+      seed_messages:
+        - "wheres the best spot to mine quant rn"
+      scripted_followups:
+        - after: "agent asks ONE question (system OR ship) or runs all-systems and flags it"
+          user_says: "stanton, prospector"
+    human_speak:
+      raw: "wheres the best spot to mine quant rn"
+      canonical_intent: "Resources branch — best mining location(s) for Quantainium."
+      entities: { materials: [Quantainium], system: unknown, ship: unknown }
+      common_misreads:
+        - "Failing to expand 'quant' -> Quantainium (glossary)."
+        - "Asking for the material again ('which material?') when it was given."
+    expected_workflow:
+      branch: "Resources / Mining locations"
+      must_load: [instructions/resources.md]
+      steps:
+        - "Expand 'quant' -> Quantainium. Material known."
+        - "System/ship optional -> either run all-systems and flag, or ask ONE (not both) then run."
+        - "Run mining-locations for Quantainium; present route + material properties."
+        - "Surface instability/resistance guidance (Quantainium is extreme)."
+        - "Offer the material acquisition plan as a follow-up."
+      scripts_implied: [mining_locations.py]
+      must_surface: [top_locations, crack_assessment, instability_guidance, ship_profile_note]
+    required_context: [materials]   # only material is required; system/ship default
+    defaults_allowed:
+      system: "all systems, flagged"
+      ship: "unknown -> conservative profile, flagged"
+    ground_truth:
+      quant_expansion: Quantainium
+      quantainium_facts: { rarity: legendary, instability: 1000, resistance: 0.95 }
+      quantainium_primary_system: Stanton     # all listed locations are Stanton
+      sample_locations: [Aaron Halo, Daymar, Yela, Wala, Aberdeen, microTech]
+      patch_line_required: "[Data: patch 4.8.1-live.11875683]"
+      checks:
+        - "Quantainium is extreme: instability 1000 + resistance 0.95 — high-instability guidance MUST appear (resources.md:71-72)."
+        - "Locations cited must be real Quantainium locations; inventing one = G_hallucination."
+    rubric:
+      gates_in_scope: [G_patch_citation, G_one_question, G_hallucination, G_premature_script]
+      case_specific_checks:
+        - id: slang-expanded
+          assert: "'quant' correctly understood as Quantainium."
+          dimension: human_speak
+        - id: instability-guidance
+          assert: "High-instability handling guidance surfaced (instability >= 500)."
+          dimension: workflow_adherence
+        - id: ship-flag
+          assert: "If ship unknown at answer time, conservative-profile flag stated."
+          dimension: context_gathering
+    exemplars:
+      pass: "'[Data: patch ...] Quantainium (legendary, instability 1000, resistance 0.95) — found across Stanton moons/belts...' route + 'instability is maxed; keep power in the green window, use active modules to absorb spikes.' Offers acquisition plan."
+      fail: "'Which material did you mean?' (failed to expand 'quant') or lists made-up Pyro Quantainium fields."
+
+  - id: resources-002
+    title: "Multi-material route into acquisition plan with refinery prefs"
+    difficulty: medium
+    tags: [workflow_adherence, acquisition_plan, context_gathering, output_compliance]
+    scenario:
+      user_persona: "Crafter sourcing materials."
+      seed_messages:
+        - "i need to mine laranite and tungsten in stanton with my mole, then whats the best way to refine it"
+      scripted_followups:
+        - after: "agent presents the route and offers the acquisition plan, then asks refinery preference (ONE question)"
+          user_says: "best yield, refine everything"
+    human_speak:
+      raw: "i need to mine laranite and tungsten in stanton with my mole, then whats the best way to refine it"
+      canonical_intent: "Resources branch — route for Laranite+Tungsten in Stanton with MOLE, then acquisition/refining plan."
+      entities: { materials: [Laranite, Tungsten], system: Stanton, ship: mole }
+      common_misreads:
+        - "Dropping one of the two materials."
+        - "Jumping to the acquisition plan without collecting refinery_pref / refine_what."
+    expected_workflow:
+      branch: "Resources / Mining locations"
+      must_load: [instructions/resources.md]
+      steps:
+        - "All context present (materials, system, ship). Run mining-locations."
+        - "Present numbered route + per-material properties."
+        - "Offer acquisition plan; collect refinery_pref + refine_what (one question per turn — do NOT batch both)."
+        - "Present the acquisition plan table (raw ore needed, trips, refinery ranking, sell prices, refining decision, caveats)."
+      scripts_implied: [mining_locations.py, material_acquisition_plan.py]
+      must_surface: [recommended_route, refineries_ranked_top, raw_ore_needed, trip_scenarios, caveats]
+    required_context: [materials, system, ship]   # then refinery_pref + refine_what before the plan
+    defaults_allowed:
+      refinery_pref: "yield"
+      refine_what: "selective"
+    ground_truth:
+      laranite_facts: { rarity: uncommon, instability: 400, resistance: 0.5 }
+      laranite_locations_stanton: ["Lagrange A", "Lagrange F", Lyria, Wala]
+      tungsten_is_valid: true
+      patch_line_required: "[Data: patch 4.8.1-live.11875683]"
+      caveat_required: "yield/fee percentages are approximations — verify in-game"
+      checks:
+        - "Both Laranite AND Tungsten must appear in the route and plan."
+        - "Acquisition-plan caveat about approximate yields/fees must be surfaced (resources.md:171)."
+        - "MOLE is a valid mining ship (S2, 96 SCU) — capability framing should reflect that, not a Prospector."
+    rubric:
+      gates_in_scope: [G_patch_citation, G_raw_json, G_one_question, G_hallucination]
+      case_specific_checks:
+        - id: both-materials
+          assert: "Both Laranite and Tungsten handled end-to-end."
+          dimension: data_fidelity
+        - id: prefs-collected
+          assert: "refinery_pref and refine_what collected before running the acquisition plan."
+          dimension: context_gathering
+        - id: caveat-present
+          assert: "Approximation caveat surfaced with the plan."
+          dimension: output_compliance
+    exemplars:
+      pass: "Route with both materials -> 'Want the full acquisition plan? Which refinery preference — nearest, yield, economy, or fastest?' (one Q) -> plan table with caveats."
+      fail: "Dumps an acquisition plan immediately using default prefs without asking, or omits Tungsten."
+
+  - id: resources-003
+    title: "Material absent in requested system -> cross-system fallback"
+    difficulty: medium
+    tags: [branching_rule, found_false, workflow_adherence]
+    scenario:
+      user_persona: "Pyro resident."
+      seed_messages:
+        - "best place for borase in pyro? flying a prospector"
+      scripted_followups:
+        - after: "agent reports Borase not found in Pyro and offers other systems"
+          user_says: "yeah show me where it is then"
+    human_speak:
+      raw: "best place for borase in pyro? flying a prospector"
+      canonical_intent: "Resources branch — Borase location in Pyro (likely absent), ship=Prospector."
+      entities: { materials: [Borase], system: Pyro, ship: prospector }
+      common_misreads:
+        - "Inventing a Pyro Borase location to satisfy the request (G_hallucination)."
+    expected_workflow:
+      branch: "Resources / Mining locations"
+      must_load: [instructions/resources.md]
+      steps:
+        - "Run mining-locations for Borase in Pyro."
+        - "If not found in Pyro, state so and list the systems where it DOES appear (resources.md:96-98)."
+        - "On confirmation, re-run without the system filter and present the route."
+      scripts_implied: [mining_locations.py]
+      must_surface: [not_found_in_system_message, alternative_systems, route_after_refilter]
+    required_context: [materials]
+    defaults_allowed:
+      system: "given (Pyro), then relaxed on fallback"
+      ship: "prospector (given)"
+    ground_truth:
+      borase_is_valid: true
+      patch_line_required: "[Data: patch 4.8.1-live.11875683]"
+      checks:
+        - "If Borase is absent in Pyro, the agent must say so plainly rather than fabricate a location."
+        - "Fallback must offer/show the systems where Borase actually exists."
+    rubric:
+      gates_in_scope: [G_patch_citation, G_hallucination, G_one_question]
+      case_specific_checks:
+        - id: honest-not-found
+          assert: "Absence in Pyro reported honestly; no invented Pyro location."
+          dimension: data_fidelity
+        - id: cross-system-offer
+          assert: "Other systems offered, then route shown on confirmation."
+          dimension: workflow_adherence
+    exemplars:
+      pass: "'I couldn't find Borase in Pyro. It appears in [systems]. Want those instead?' -> shows route."
+      fail: "Lists a fake 'Pyro V Borase field' to satisfy the ask."

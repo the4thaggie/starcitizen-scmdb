@@ -1,0 +1,181 @@
+# =============================================================================
+# CASES — Missions branch (rep / rank grinding)
+# Scored by the engine in ../spec.yaml. Anchors: SKILL.md:26-46, instructions/missions.md
+# =============================================================================
+# Case schema (all case files share it):
+#   id, category, title, difficulty(easy|medium|hard), tags[]
+#   scenario: { user_persona, seed_messages[], scripted_followups[]? }
+#   human_speak: { raw, canonical_intent, entities{}, common_misreads[] }
+#   expected_workflow: { branch, must_load[], steps[], scripts_implied[], must_surface[] }
+#   required_context[]              # must be gathered (or resolved) before final answer
+#   defaults_allowed{}              # optional context + documented default
+#   ground_truth: {...}             # judge-checkable facts (no tool output visible)
+#   rubric: { weights{}?, not_applicable[]?, gates_in_scope[], case_specific_checks[] }
+#   exemplars: { pass, fail }
+# =============================================================================
+
+category: missions
+category_weight_hint: 1.0
+
+cases:
+
+  - id: missions-001
+    title: "Open faction-unknown rep grind from slang opener"
+    difficulty: easy
+    tags: [routing, human_speak, faction_lookup, one_question_rule]
+    scenario:
+      user_persona: "Casual miner, terse mobile typing."
+      seed_messages:
+        - "yo where do i grind rep for a quantum drive"
+      scripted_followups:
+        - after: "agent presents a faction menu and asks user to pick"
+          user_says: "covalex i guess, im at contractor with em"
+    human_speak:
+      raw: "yo where do i grind rep for a quantum drive"
+      canonical_intent: "Missions branch — reputation grind to unlock a quantum-drive blueprint; faction not yet chosen."
+      entities: { reward_item: "quantum drive", faction: unknown, current_rep: unknown }
+      common_misreads:
+        - "Treating 'quantum drive' as a mining target (routing to resources)."
+        - "Asking an open 'which faction do you want to grind?' instead of looking up options."
+    expected_workflow:
+      branch: "Missions only"
+      must_load: [instructions/missions.md]
+      steps:
+        - "Faction unknown -> run faction lookup filtered to quantum-drive blueprint, present a SHORT menu (name / what it unlocks / required standing)."
+        - "User picks Covalex + gives 'Contractor' as current rep."
+        - "Run grind plan for Covalex from Contractor to the QD unlock tier; ship/party defaulted + noted."
+        - "Present grind table (one row per tier) + totals + batching/community notes."
+      scripts_implied: [faction_search.py, mission_grind_plan.py]
+      must_surface: [current_tier, target_tier, "per-tier best_mission + rep_per_run", total_runs, total_est_hours, batching_notes, community_tips]
+    required_context:
+      - faction            # resolved via lookup+menu, NOT an open question
+      - current_rep        # must ask (Contractor accepted as a tier name)
+    defaults_allowed:
+      system: "any (run all systems), note it"
+      ship: "unknown -> note no cargo/batching constraint"
+      party_size: "1, note assumption"
+    ground_truth:
+      valid_factions_in_data: [Covalex, "Ling Family Hauling", Shubin Interstellar, Headhunters, "Red Wind Linehaul", "Citizens For Prosperity", "Foxwell Enforcement", "Eckhart Security", "Wikelo Emporium"]
+      covalex_is_valid: true
+      current_rep_tier_name_accepted: true       # missions.md:64 — tier names accepted as-is
+      patch_line_required: "[Data: patch 4.8.1-live.11875683]"
+      checks:
+        - "Faction menu must contain only real factions from the data; inventing a faction = G_hallucination."
+        - "Grind plan must start from Contractor, not from zero."
+    rubric:
+      gates_in_scope: [G_patch_citation, G_one_question, G_open_question_where_lookup_required, G_hallucination, G_premature_script]
+      case_specific_checks:
+        - id: faction-menu-not-open-question
+          assert: "Agent presented a lookup-derived faction menu rather than asking an open 'which faction?'."
+          dimension: workflow_adherence
+        - id: rep-asked-before-plan
+          assert: "Agent asked for current rep/standing before presenting any grind table."
+          dimension: context_gathering
+        - id: defaults-noted
+          assert: "Ship/party-size assumptions stated explicitly when defaulted."
+          dimension: context_gathering
+    exemplars:
+      pass: "Agent: '[Data: patch 4.8.1...] A few factions unlock quantum-drive blueprints — 1) Covalex (hauling, QD at Master) 2) Ling Family Hauling (QD at Rookie) 3) ... Which one, or want me to pick by item? ' -> user picks Covalex -> 'What's your current standing with Covalex?' -> builds table from Contractor, notes 'assuming solo, no ship given'."
+      fail: "Agent: 'Which faction do you want to grind?' (open question, no lookup) — trips G_open_question_where_lookup_required."
+
+  - id: missions-002
+    title: "Faction + rep supplied up front; long-grind wall warning"
+    difficulty: medium
+    tags: [workflow_adherence, defaults, branching_rule, output_compliance]
+    scenario:
+      user_persona: "Knows exactly what they want."
+      seed_messages:
+        - "build me a grind plan for Shubin Interstellar, I'm sitting at like Rookie and want the top tier"
+    human_speak:
+      raw: "build me a grind plan for Shubin Interstellar, I'm sitting at like Rookie and want the top tier"
+      canonical_intent: "Missions branch — full grind plan, faction=Shubin Interstellar, current_rep=Rookie, target=highest tier."
+      entities: { faction: "Shubin Interstellar", current_rep: "Rookie", target_tier: "highest" }
+      common_misreads:
+        - "Re-asking for the faction or current rep that was already given."
+    expected_workflow:
+      branch: "Missions only"
+      must_load: [instructions/missions.md]
+      steps:
+        - "Both required items present -> do NOT re-ask. Defaults for system/ship/party (noted)."
+        - "Run grind plan Rookie -> highest tier."
+        - "Present per-tier table + totals."
+        - "If total_runs > 500, surface the explicit grind-wall warning (missions.md:131-134)."
+      scripts_implied: [mission_grind_plan.py]
+      must_surface: [current_tier, target_tier, per_tier_runs, total_runs, total_est_hours, batching_notes, community_tips]
+    required_context: [faction, current_rep]   # both supplied -> 0 questions ideal
+    defaults_allowed:
+      system: "all, noted"
+      ship: "unknown, flag no cargo batching"
+      party_size: "1, noted"
+    ground_truth:
+      shubin_is_valid: true
+      patch_line_required: "[Data: patch 4.8.1-live.11875683]"
+      checks:
+        - "Agent should ask ZERO clarifying questions before the plan (both required items present)."
+        - "If the plan is long, the grind-wall note must appear; if short, it legitimately may not."
+    rubric:
+      gates_in_scope: [G_patch_citation, G_raw_json, G_one_question, G_hallucination]
+      case_specific_checks:
+        - id: no-redundant-questions
+          assert: "Agent did not re-ask faction or current rep (already supplied)."
+          dimension: context_gathering
+        - id: grind-wall-conditional
+          assert: "If total_runs>500 the explicit grind-wall warning was surfaced."
+          dimension: workflow_adherence
+    exemplars:
+      pass: "Goes straight to the table, notes 'assuming solo/all systems/ship unknown', and adds the grind-wall caution for the Sr.->Experienced segment."
+      fail: "Re-asks 'which faction are you grinding?' despite Shubin being named."
+
+  - id: missions-003
+    title: "Group grind + combat mission handling"
+    difficulty: hard
+    tags: [branching_rule, party_play, combat_warning, workflow_adherence]
+    scenario:
+      user_persona: "Org member running with friends."
+      seed_messages:
+        - "me and 2 buddies wanna grind Headhunters, we're all neutral. whats the fastest path and can we share the missions"
+    human_speak:
+      raw: "me and 2 buddies wanna grind Headhunters, we're all neutral. whats the fastest path and can we share the missions"
+      canonical_intent: "Missions branch — Headhunters grind, party_size=3, current_rep=Neutral, user explicitly asks about mission sharing."
+      entities: { faction: Headhunters, current_rep: Neutral, party_size: 3 }
+      common_misreads:
+        - "Ignoring party_size and answering as solo."
+        - "Not addressing the explicit can-be-shared question."
+    expected_workflow:
+      branch: "Missions only"
+      must_load: [instructions/missions.md]
+      steps:
+        - "Required context present (faction, rep). party_size=3 captured."
+        - "Run grind plan with party-size 3."
+        - "For each mission, indicate whether it can_be_shared (missions.md:115-116, 140-141)."
+        - "If any recommended mission has combat/shipEncounters and party benefits/risks, surface the combat note (missions.md:143-144)."
+      scripts_implied: [mission_grind_plan.py]
+      must_surface: [per_tier_best_mission, can_be_shared_flags, combat_warnings_if_any, total_runs, total_est_hours]
+    required_context: [faction, current_rep]
+    defaults_allowed:
+      system: "all, noted"
+      ship: "unknown, noted"
+      party_size: "explicitly 3 — do NOT default"
+    ground_truth:
+      headhunters_is_valid: true
+      headhunters_is_combat_faction: true   # bounty/combat-style work — combat note plausible
+      patch_line_required: "[Data: patch 4.8.1-live.11875683]"
+      checks:
+        - "Agent must directly answer the sharing question per-mission, not generically."
+        - "party_size=3 must be reflected; not silently treated as solo."
+    rubric:
+      weights: { workflow_adherence: 0.25, human_speak: 0.10 }
+      gates_in_scope: [G_patch_citation, G_hallucination, G_one_question]
+      case_specific_checks:
+        - id: sharing-answered
+          assert: "Per-mission can_be_shared status surfaced; the explicit sharing question answered."
+          dimension: workflow_adherence
+        - id: party-reflected
+          assert: "party_size=3 reflected in the plan, not defaulted to 1."
+          dimension: context_gathering
+        - id: combat-note
+          assert: "If a combat/encounter mission is recommended, the combat caution appears."
+          dimension: workflow_adherence
+    exemplars:
+      pass: "Plan with a 'Shareable?' column, flags non-shareable missions ('each player must accept individually'), and warns on combat-tagged missions."
+      fail: "Solo plan, no mention of sharing despite the direct question."

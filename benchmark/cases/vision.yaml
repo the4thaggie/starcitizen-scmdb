@@ -1,0 +1,169 @@
+# =============================================================================
+# CASES — Vision branch (HUD screenshot parsing -> downstream routing)
+# Anchors: SKILL.md:73-79, instructions/vision.md
+# Trigger: a USER turn carries a `photo` attachment (see spec.telegram_export.attachments).
+# =============================================================================
+category: vision
+category_weight_hint: 1.0
+
+cases:
+
+  - id: vision-001
+    title: "Reputation tab screenshot -> parse -> grind handoff without re-asking"
+    difficulty: medium
+    tags: [routing, image_intake, emoji_legend, context_reuse, image_privacy]
+    scenario:
+      user_persona: "Sends a screenshot of their MobiGlas reputation tab."
+      seed_messages:
+        - text: "heres my standing with covalex, whats next"
+          attachment: { photo: "exports/media/rep_covalex.png" }
+      scripted_followups:
+        - after: "agent reads back the standing and offers a grind plan to a target tier"
+          user_says: "get me to master"
+    human_speak:
+      raw: "heres my standing with covalex, whats next"
+      canonical_intent: "Vision branch — reputation HUD; parse standing, then offer grind plan reusing parsed context."
+      entities: { hud_type: reputation, faction: Covalex }
+      common_misreads:
+        - "Re-asking for the faction or current rep that the screenshot provides."
+        - "Asking which HUD type when context clearly says reputation/standing."
+    expected_workflow:
+      branch: "HUD Screenshot"
+      must_load: [instructions/vision.md]
+      steps:
+        - "Image path present + context says standing -> HUD type = reputation (no need to ask)."
+        - "Run hud_parse --hud reputation; read back faction, relationship, rank list with emoji legend (vision.md:71-80)."
+        - "Offer grind plan; on confirm, DERIVE current_rep from in_progress_rank + progress_pct and hand to missions.md Step 2 — do NOT re-ask faction/rep (vision.md:85-92)."
+      scripts_implied: [hud_parse.py, mission_grind_plan.py]
+      must_surface: [faction, relationship, rank_states_with_emoji, derived_current_rep_used, grind_plan]
+    required_context: [target_tier]   # only the target is asked; faction+rep come from the image
+    defaults_allowed:
+      ship: "unknown, noted"
+      party_size: "1, noted"
+    ground_truth:
+      emoji_legend: { complete: "✅", in_progress: "🔵", locked: "🔒" }
+      covalex_is_valid: true
+      image_never_stored: true     # vision.md:23-25 — parser deletes file; agent must not claim retention
+      patch_line_required: "[Data: patch 4.8.1-live.11875683]"
+      checks:
+        - "Agent must read back what it saw using the emoji legend (✅/🔵/🔒)."
+        - "On grind handoff, current rep must be DERIVED from the screenshot, not re-asked."
+        - "Agent must not claim it is storing/keeping the screenshot (G_image_retention)."
+    rubric:
+      gates_in_scope: [G_patch_citation, G_hallucination, G_one_question, G_image_retention, G_capability_fabrication]
+      case_specific_checks:
+        - id: hud-type-inferred
+          assert: "Reputation HUD inferred from context; did not ask which screen."
+          dimension: routing
+        - id: emoji-readback
+          assert: "Rank states read back with the ✅/🔵/🔒 legend."
+          dimension: output_compliance
+        - id: context-reused
+          assert: "Faction + current rep reused from the parse; not re-asked on handoff."
+          dimension: context_gathering
+    exemplars:
+      pass: "'I can see Covalex (relationship: ...). ✅ Neutral ✅ Jr. Contractor 🔵 Contractor — 42%. Want a plan to Master?' -> 'get me to master' -> builds plan from the derived rep."
+      fail: "Asks 'what faction is this and what's your current rep?' after being shown the screenshot."
+
+  - id: vision-002
+    title: "Mining HUD screenshot -> rock summary + difficulty-gated next step"
+    difficulty: medium
+    tags: [image_intake, rock_summary, difficulty_gating, capability_honesty]
+    scenario:
+      user_persona: "Sends a mining HUD screenshot mid-scan."
+      seed_messages:
+        - text: "is this rock worth cracking?"
+          attachment: { photo: "exports/media/mining_rock.png" }
+    human_speak:
+      raw: "is this rock worth cracking?"
+      canonical_intent: "Vision branch — mining HUD; parse rock stats + composition, advise based on difficulty/inert%."
+      entities: { hud_type: mining }
+      common_misreads:
+        - "Claiming to read the laser/module loadout from the screenshot (left panel is NOT parsed — vision.md:142-143)."
+    expected_workflow:
+      branch: "HUD Screenshot"
+      must_load: [instructions/vision.md]
+      steps:
+        - "HUD type = mining (image + 'crack' context)."
+        - "Run hud_parse --hud mining; present rock summary (mass, RES%, instability, difficulty, composition w/ value, cargo) (vision.md:121-129)."
+        - "Difficulty-gated next step: EASY/MEDIUM offer solver w/ current loadout; HARD warn + offer module rec; IMPOSSIBLE say it can't be cracked, suggest skipping (vision.md:131-137)."
+        - "If inert % > 30, note low yield (vision.md:149-150)."
+        - "If solver requested, ask ship + laser/modules (NOT parsed) and pass rock-mass/material from the screenshot."
+      scripts_implied: [hud_parse.py, mining_solver.py]
+      must_surface: [rock_summary, difficulty_assessment, inert_note_if_high, honest_capability_limits]
+    required_context: []   # nothing required up front; image carries the data
+    defaults_allowed: {}
+    ground_truth:
+      image_never_stored: true
+      left_panel_loadout_not_parsed: true   # must ask for laser/modules; cannot read them from image
+      patch_line_required: "[Data: patch 4.8.1-live.11875683]"
+      checks:
+        - "Difficulty rating must drive the recommendation (esp. IMPOSSIBLE -> advise skipping)."
+        - "Agent must NOT claim to have read the laser/modules from the screenshot."
+        - "Composition value column (aUEC/SCU) used to identify most/least valuable materials."
+    rubric:
+      gates_in_scope: [G_patch_citation, G_hallucination, G_capability_fabrication, G_image_retention, G_one_question]
+      case_specific_checks:
+        - id: difficulty-gated-advice
+          assert: "Next-step advice matched the parsed difficulty band."
+          dimension: workflow_adherence
+        - id: loadout-not-fabricated
+          assert: "Did not claim to read loadout from the image; asked for laser/modules if solving."
+          dimension: data_fidelity
+        - id: inert-note
+          assert: "If inert>30%, low-yield note surfaced."
+          dimension: workflow_adherence
+    exemplars:
+      pass: "'Rock: Bexalite | Mass ... | RES ...% | INST ... -> HARD. Composition: ... This is near the edge of capability — want me to check your loadout? (I'll need your laser + modules — I can't read them from the shot.)'"
+      fail: "'Your Hofstede S2 with Rieger modules can crack this' — fabricated loadout it cannot see."
+
+  - id: vision-003
+    title: "Uncalibrated HUD + OCR UNKNOWN faction handling"
+    difficulty: hard
+    tags: [error_handling, warnings, ocr_fallback, branching_rule]
+    scenario:
+      user_persona: "Sends a slightly off-res reputation screenshot."
+      seed_messages:
+        - text: "what rank am i"
+          attachment: { photo: "exports/media/rep_uncalibrated.png" }
+      scripted_followups:
+        - after: "agent surfaces the calibration warning / asks user to confirm faction"
+          user_says: "its Crusader Security"
+    human_speak:
+      raw: "what rank am i"
+      canonical_intent: "Vision branch — reputation HUD with parse warnings; must surface warnings and recover via user input."
+      entities: { hud_type: reputation, faction: unknown_ocr }
+      common_misreads:
+        - "Presenting parsed ranks confidently while ignoring NEEDS_CALIBRATION warnings."
+        - "Guessing the faction when OCR returned UNKNOWN."
+    expected_workflow:
+      branch: "HUD Screenshot"
+      must_load: [instructions/vision.md]
+      steps:
+        - "Run hud_parse --hud reputation."
+        - "If warnings contain NEEDS_CALIBRATION, tell the user results may be inaccurate and ask them to confirm faction + rank (vision.md:60-61)."
+        - "If OCR faction == UNKNOWN, ask the user to type the faction; on reply, continue (vision.md:181)."
+        - "Optionally validate the typed faction against faction_search if ambiguous (vision.md:113)."
+      scripts_implied: [hud_parse.py, faction_search.py]
+      must_surface: [calibration_warning, faction_confirmation_request, recovered_result]
+    required_context: [faction_confirmation]
+    defaults_allowed: {}
+    ground_truth:
+      image_never_stored: true
+      patch_line_required: "[Data: patch 4.8.1-live.11875683]"
+      checks:
+        - "Calibration warning must be surfaced, not silently dropped."
+        - "Unknown OCR faction must trigger a request for the user to type it — no guessing."
+    rubric:
+      weights: { workflow_adherence: 0.25, output_compliance: 0.20 }
+      gates_in_scope: [G_patch_citation, G_hallucination, G_image_retention, G_one_question]
+      case_specific_checks:
+        - id: warning-surfaced
+          assert: "NEEDS_CALIBRATION warning surfaced with an accuracy caveat."
+          dimension: output_compliance
+        - id: no-faction-guess
+          assert: "Did not invent a faction for UNKNOWN OCR; asked the user."
+          dimension: data_fidelity
+    exemplars:
+      pass: "'Heads up — this HUD layout isn't calibrated so readings may be off. I couldn't read the faction name; can you tell me which faction this is?' -> recovers."
+      fail: "Confidently reports ranks for a guessed faction despite NEEDS_CALIBRATION."

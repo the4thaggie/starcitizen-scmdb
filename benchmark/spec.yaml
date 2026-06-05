@@ -1,0 +1,388 @@
+# =============================================================================
+# SCMDB Agent Benchmark — Framework Spec (the scoring engine)
+# =============================================================================
+# This file defines HOW cases are scored. It is model-agnostic and case-agnostic.
+# Case files in ./cases/*.yaml define WHAT is tested. The judge loads this spec +
+# one case + one Telegram export, and emits a per-case result (see result_schema).
+#
+# Test subject:   the model-under-test acts AS the SCMDB skill agent, replying to
+#                 a human inside a Telegram chat. The export is the full back-and-forth.
+# Scoring model:  weighted dimensions (0..1 each) + hard gates (caps/penalties).
+# Grader:         an automated LLM judge. Every rubric item is written to be
+#                 OBSERVABLE FROM CHAT TEXT ALONE (tool calls are not in the export).
+# =============================================================================
+
+meta:
+  name: scmdb-agent-benchmark
+  version: 1.0.0
+  target_skill: starcitizen-scmdb
+  target_skill_version_pin: "4.8.1-live.11875683"   # data/VERSION at authoring time
+  description: >
+    Measures how well a given model operates the SCMDB Star Citizen skill when
+    driven by real player chatter: routing to the right workflow, interpreting
+    human-speak, gathering required context one question at a time, following the
+    prescribed workflow, surfacing accurate script-derived data, and obeying the
+    skill's output rules.
+  authoring_notes: >
+    Cite file:line into the skill when adding/maintaining a case so rubrics stay
+    anchored to ground truth. Branches/output rules live in SKILL.md; per-branch
+    workflows in instructions/*.md.
+
+# -----------------------------------------------------------------------------
+# 1. TELEGRAM EXPORT CONTRACT
+# -----------------------------------------------------------------------------
+# How the judge turns a Telegram Desktop "Export chat history (JSON)" file into
+# an ordered list of turns and identifies which turns belong to the agent.
+telegram_export:
+  format: telegram_desktop_json
+  root_object: true                 # top-level is {name,type,id,messages:[...]}
+  messages_field: messages
+  order_by: date_unixtime           # ascending; fall back to `id` then `date`
+  turn_fields:
+    id: id
+    sender_name: from
+    sender_id: from_id              # e.g. "user1234567" / "user987" (bot account)
+    timestamp: date_unixtime
+    body: text                      # may be a STRING or an ARRAY of entity objects
+    edited: edited                  # presence => message was edited; judge uses final text
+  text_normalization:
+    - "If `text` is an array, concatenate each element's `.text` (entities: bold, italic, link, code, mention)."
+    - "Preserve code blocks verbatim — they may contain tables the agent rendered."
+    - "Strip Telegram service messages (type != 'message')."
+  attachments:
+    photo_field: photo              # local path to an image => screenshot present
+    file_field: file               # non-image file attachment
+    note: "A `photo` on a USER turn is the trigger for vision/HUD cases."
+  agent_identity:
+    # Set per-run. The judge treats turns from this identity as the model-under-test.
+    match_on: from_id               # prefer from_id; `from` (display name) as fallback
+    value: "REPLACE_WITH_BOT_FROM_ID"
+    fallback_display_name: "REPLACE_WITH_BOT_DISPLAY_NAME"
+  visibility_caveat: >
+    The export contains ONLY chat messages. Tool calls, bash invocations, and
+    skill_view loads are NOT visible. Workflow adherence and data fidelity must be
+    judged from what the agent SAYS (questions asked, order, values presented,
+    formatting). Each case provides a `ground_truth` block of acceptable values so
+    the judge can check correctness without seeing the tool output.
+
+# -----------------------------------------------------------------------------
+# 2. SCORING DIMENSIONS  (each scored 0.00–1.00 by the judge)
+# -----------------------------------------------------------------------------
+# default_weight sums to 1.00. A case MAY override weights via `rubric.weights`.
+# A case MAY mark a dimension `not_applicable: true` (its weight is redistributed
+# proportionally across the remaining applicable dimensions).
+dimensions:
+
+  routing:
+    default_weight: 0.15
+    summary: "Classified the request into the correct SKILL.md branch."
+    anchor_ref: "SKILL.md:12-86 (top-level decision tree)"
+    judge_guidance: >
+      Identify the branch the case expects (case.expected_workflow.branch). Score
+      whether the agent's behavior matches that branch: the right kind of questions,
+      the right script family, the right downstream offers. Mis-route = the agent
+      pursued a different branch (e.g. treated a craft request as a pure mining one).
+    anchors:
+      "1.00": "Correct branch; if multi-intent, entered via the correct primary branch (fabricator)."
+      "0.75": "Correct branch but a beat late (one off-target turn before correcting)."
+      "0.50": "Partially correct: handled one intent, missed a clearly-signalled second."
+      "0.25": "Wrong branch but recoverable; produced some on-topic value."
+      "0.00": "Wrong branch; answer is off-task or invents a non-existent capability."
+
+  human_speak:
+    default_weight: 0.15
+    summary: "Interpreted casual phrasing, slang, abbreviations, and typos into the right intent + entities."
+    judge_guidance: >
+      Compare the agent's understood intent against case.human_speak.canonical_intent
+      and entities. Credit correct expansion of SC slang/abbreviations (see
+      glossary below) and graceful handling of typos. Penalize literal
+      misreadings listed in case.human_speak.common_misreads.
+    anchors:
+      "1.00": "All entities + intent correctly extracted; slang/abbreviations expanded correctly."
+      "0.75": "Core intent right; one minor entity mis-set but self-corrected or harmless."
+      "0.50": "Intent right but a material entity wrong (e.g. wrong material/ship)."
+      "0.25": "Literal misread that distorts the task but stays in the domain."
+      "0.00": "Fundamental misunderstanding of what the user asked."
+
+  context_gathering:
+    default_weight: 0.20
+    summary: "Collected REQUIRED context before acting, applied defaults for optional context, and asked ONE question per turn."
+    anchor_ref: "SKILL.md:94-95; per-branch context tables in instructions/*.md"
+    judge_guidance: >
+      Check case.required_context was obtained (or correctly resolved via a lookup
+      rather than an open-ended question, where the workflow demands it). Check
+      optional context used the documented defaults with the assumption stated.
+      The one-question-per-turn rule is also enforced by gate G_one_question.
+    anchors:
+      "1.00": "All required context gathered correctly; defaults applied + noted; never >1 question/turn."
+      "0.75": "All required context gathered; a default applied silently without noting the assumption."
+      "0.50": "Asked for context it should have defaulted, OR missed noting one assumption, but didn't run prematurely."
+      "0.25": "Missed one required item but caught it before final answer."
+      "0.00": "Acted on a final answer missing required context, or open-question where a lookup was required."
+
+  workflow_adherence:
+    default_weight: 0.20
+    summary: "Followed the prescribed steps in order and applied the branch's branching rules / edge handling."
+    judge_guidance: >
+      Walk case.expected_workflow.steps. Since tool calls aren't visible, infer
+      step execution from the agent's chat (e.g. presenting a faction menu implies a
+      faction_search; presenting a quality-breakpoint table implies blueprint_materials).
+      Score case.rubric.case_specific_checks here. Premature script execution is also
+      gated by G_premature_script.
+    anchors:
+      "1.00": "Every expected step evidenced in the right order; all applicable branching rules honored."
+      "0.75": "All steps present; minor ordering slip or one branching-rule nicety missed."
+      "0.50": "A required step skipped OR an edge rule mishandled, but core flow intact."
+      "0.25": "Multiple steps skipped / out of order; result reached by shortcut."
+      "0.00": "Did not follow the workflow; freelanced an answer."
+
+  data_fidelity:
+    default_weight: 0.15
+    summary: "Surfaced accurate, script-grounded values; no hallucinated numbers, locations, or capabilities."
+    judge_guidance: >
+      Cross-check every concrete claim (factions, tiers, rep numbers, materials,
+      locations, prices, stats, runs/hours) against case.ground_truth. Values inside
+      ground_truth.acceptable ranges = correct. Values that are invented or
+      contradict ground_truth = hallucination (also trips gate G_hallucination).
+      Surfacing required output keys (case.expected_workflow.must_surface) belongs here.
+    anchors:
+      "1.00": "All concrete claims match ground_truth; all required keys surfaced."
+      "0.75": "All claims correct; one non-critical required key omitted."
+      "0.50": "One minor value off OR a couple of required keys omitted; nothing invented."
+      "0.25": "A noticeable value wrong but framed as approximate; no confident fabrication."
+      "0.00": "Confidently stated invented data (trips G_hallucination)."
+
+  output_compliance:
+    default_weight: 0.15
+    summary: "Obeyed the skill's output rules: lead with patch version, tables/prose not raw JSON, found:false handling, correct disclaimers."
+    anchor_ref: "SKILL.md:89-95"
+    judge_guidance: >
+      Patch citation and no-raw-JSON are also hard gates (G_patch_citation,
+      G_raw_json); score the remaining output niceties here (table formatting,
+      required disclaimers like the solver 'mixed composition' note, refinery
+      caveats, found:false phrasing, emoji legend for reputation HUD).
+    anchors:
+      "1.00": "All output rules + case-required disclaimers present; clean tables."
+      "0.75": "Output clean; one optional disclaimer missing."
+      "0.50": "Readable but missed a required disclaimer, or formatting was sloppy."
+      "0.25": "Hard to read / partially raw, but not a full JSON dump."
+      "0.00": "Dumped raw JSON or omitted the patch line (also gated)."
+
+# -----------------------------------------------------------------------------
+# 3. HARD GATES  (applied AFTER the weighted sum; clamp result to [0,1])
+# -----------------------------------------------------------------------------
+# effect types:
+#   cap_total_at: X      -> final = min(final, X)
+#   zero_dimension: D     -> set dimension D to 0 BEFORE the weighted sum
+#   penalty: X            -> final = final - X (per trip unless once:true)
+# A gate only fires with cited message-id evidence.
+gates:
+
+  G_patch_citation:
+    applies_to: [all]
+    triggers_when: "A substantive data answer is delivered without a leading patch line, e.g. '[Data: patch 4.8.1-live.11875683]'."
+    excused_when: "Turn is purely a clarifying question or social acknowledgement (no data delivered)."
+    effect: { cap_total_at: 0.60 }
+    evidence_required: "message id of the data answer lacking the patch line"
+
+  G_raw_json:
+    applies_to: [all]
+    triggers_when: "Agent pastes raw JSON / a raw data-file dump instead of tables or prose."
+    effect: { cap_total_at: 0.50 }
+    evidence_required: "message id containing the raw JSON"
+
+  G_hallucination:
+    applies_to: [all]
+    triggers_when: "Agent states a concrete value (faction, tier, rep, price, location, stat, runs) that contradicts case.ground_truth or is invented with confidence."
+    effect: { zero_dimension: data_fidelity, cap_total_at: 0.40 }
+    evidence_required: "message id + the offending claim + the contradicting ground_truth key"
+
+  G_one_question:
+    applies_to: [all]
+    triggers_when: "A single agent turn asks the user more than one distinct clarifying question."
+    once: false
+    effect: { penalty: 0.15 }
+    evidence_required: "message id with the multi-question turn"
+    note: "SKILL.md:95 — 'One clarifying question per turn maximum.'"
+
+  G_premature_script:
+    applies_to: [all]
+    triggers_when: "Agent presents a final data answer that depends on REQUIRED context it never collected (i.e. it must have run the query without that input)."
+    effect: { cap_total_at: 0.45 }
+    evidence_required: "the required context item never asked + the answer message id"
+
+  G_open_question_where_lookup_required:
+    applies_to: [missions, fabricator]
+    triggers_when: "Faction is unknown and the agent asks an open-ended 'which faction?' instead of running a faction lookup and presenting a menu."
+    effect: { penalty: 0.20 }
+    evidence_required: "message id with the open-ended faction question"
+    note: "missions.md:9-13; SKILL.md:40-44"
+
+  G_capability_fabrication:
+    applies_to: [all]
+    triggers_when: "Agent claims a capability the skill does not have (e.g. parsing the mining left-panel loadout from a screenshot, exact rock composition from the solver, live UEX requiring login)."
+    effect: { penalty: 0.20 }
+    evidence_required: "message id + the false capability claim"
+    note: "vision.md:142-143 (left panel not parsed); SKILL.md output honesty"
+
+  G_image_retention:
+    applies_to: [vision]
+    triggers_when: "Agent claims to store/keep the user's screenshot beyond the request, or asks the user to let it retain images."
+    effect: { penalty: 0.15 }
+    evidence_required: "message id with the retention claim"
+    note: "vision.md:23-25 — images are never stored; parser deletes after use."
+
+# -----------------------------------------------------------------------------
+# 4. PER-CASE SCORING MATH
+# -----------------------------------------------------------------------------
+case_scoring:
+  steps:
+    - "Apply any gate with effect.zero_dimension to set those dimension scores to 0."
+    - "raw = Σ( dimension_score[d] * effective_weight[d] )   over applicable dimensions"
+    - "caps = min over all triggered cap_total_at effects (default 1.0 if none)"
+    - "penalties = Σ over triggered penalty effects (respecting `once`)"
+    - "final = clamp( min(raw, caps) - penalties , 0.0 , 1.0 )"
+  effective_weight: >
+    Start from dimensions[d].default_weight, override with case.rubric.weights[d] if
+    present, drop dimensions marked not_applicable and renormalize the rest to sum 1.0.
+  report_per_case:
+    - case_id
+    - final_score
+    - dimension_scores      # {dimension: {score, weight, evidence:[msg_ids], rationale}}
+    - gates_triggered        # [{gate_id, evidence, effect_applied}]
+    - critical_check_results # case_specific_checks pass/fail with evidence
+    - judge_confidence       # low|medium|high
+
+# -----------------------------------------------------------------------------
+# 5. SUITE AGGREGATION  (one model's score across all cases)
+# -----------------------------------------------------------------------------
+suite_scoring:
+  case_weight: "category_weight[case.category] * difficulty_multiplier[case.difficulty]"
+  model_score: "Σ(case_final * case_weight) / Σ(case_weight)"
+  difficulty_multiplier: { easy: 1.0, medium: 1.5, hard: 2.0 }
+  category_weight:        # tune to reflect 'what matters for the job'
+    missions: 1.0
+    resources: 1.0
+    mining_solver: 1.0
+    fabricator: 1.25      # multi-step orchestration is the hardest, weighted up
+    vision: 1.0
+    cross_cutting: 1.0
+  reports:
+    - model_score                       # headline 0..1
+    - per_category_score
+    - per_dimension_mean                # where does this model systematically weaken?
+    - gate_trip_counts                  # e.g. patch-citation misses across the suite
+    - difficulty_curve                  # easy vs medium vs hard means
+    - n_cases / n_gated / n_hallucinations
+
+# -----------------------------------------------------------------------------
+# 6. WEIGHTING PROFILES  (swap-in dimension weightings for different priorities)
+# -----------------------------------------------------------------------------
+# Run the suite under a profile to answer "best model for THIS emphasis".
+weighting_profiles:
+  balanced:        # = dimension default_weights
+    routing: 0.15
+    human_speak: 0.15
+    context_gathering: 0.20
+    workflow_adherence: 0.20
+    data_fidelity: 0.15
+    output_compliance: 0.15
+  accuracy_first:  # correctness over conversational polish
+    routing: 0.10
+    human_speak: 0.10
+    context_gathering: 0.15
+    workflow_adherence: 0.25
+    data_fidelity: 0.25
+    output_compliance: 0.15
+  conversation_first:  # UX / interpretation over raw accuracy
+    routing: 0.15
+    human_speak: 0.25
+    context_gathering: 0.25
+    workflow_adherence: 0.15
+    data_fidelity: 0.10
+    output_compliance: 0.10
+  production_strict:   # same weights as balanced, but stricter gate caps
+    inherit: balanced
+    gate_overrides:
+      G_patch_citation: { cap_total_at: 0.40 }
+      G_hallucination:  { cap_total_at: 0.20 }
+
+# -----------------------------------------------------------------------------
+# 7. JUDGE PROTOCOL  (instructions handed to the automated LLM judge)
+# -----------------------------------------------------------------------------
+judge_protocol:
+  model_recommendation: "A strong reasoning model at temperature 0 for determinism."
+  steps:
+    - "Load this spec, ONE case file entry, and ONE Telegram export."
+    - "Parse the export per section 1 into ordered turns; split agent vs user via agent_identity."
+    - "Locate where case.scenario.seed_messages appear; that anchors the conversation under test."
+    - "For each applicable dimension: gather evidence (cite message ids), then score against its anchors. Never give benefit of the doubt without cited evidence."
+    - "Check ground_truth: flag any concrete claim that contradicts it."
+    - "Evaluate every gate; record trips with evidence."
+    - "Compute final per section 4. Emit a result per result_schema."
+  determinism_rules:
+    - "Quote message ids for every score and every gate trip."
+    - "If evidence is absent, score the lower anchor — do not assume unseen tool calls succeeded."
+    - "Judge only the agent's turns; do not penalize the agent for user behavior."
+    - "Score conservatively at boundaries: when between two anchors, pick the lower unless evidence clearly supports the higher."
+  multi_turn_handling: >
+    Cases may script user follow-ups. If the export diverged from the scripted
+    follow-ups (real human went off-script), grade the agent on how it handled the
+    ACTUAL conversation against the same dimensions; note the divergence in rationale.
+
+# -----------------------------------------------------------------------------
+# 8. RESULT SCHEMA  (what the judge emits per case)
+# -----------------------------------------------------------------------------
+result_schema:
+  case_id: string
+  model_under_test: string
+  export_file: string
+  final_score: float            # 0.00–1.00
+  dimension_scores:
+    "<dimension>":
+      score: float
+      weight: float
+      evidence: [message_id]
+      rationale: string
+  gates_triggered:
+    - gate_id: string
+      evidence: [message_id]
+      effect_applied: string
+  case_specific_checks:
+    - id: string
+      passed: bool
+      evidence: [message_id]
+  judge_confidence: string      # low|medium|high
+  notes: string
+
+# -----------------------------------------------------------------------------
+# 9. SC HUMAN-SPEAK GLOSSARY  (shared slang/abbreviation map for human_speak scoring)
+# -----------------------------------------------------------------------------
+# Cases reference these; extend as new chatter appears. Correct expansion is
+# creditable under the human_speak dimension.
+glossary:
+  quant: quantainium
+  quanta: quantainium
+  qd: quantum drive
+  "the mole": MOLE (ARGO mining ship)
+  prosp: Prospector
+  golem: Golem (Drake mining ship)
+  roc: ROC (vehicle miner)
+  rep: reputation / standing
+  "rep grind": reputation grinding for a faction tier
+  bp: blueprint
+  scu: standard cargo unit
+  aUEC: alpha United Earth Credits (in-game currency)
+  uec: UEC (currency)
+  laranite: Laranite (material)
+  bex: Bexalite
+  tung: Tungsten
+  "lases / lasing": operating the mining laser
+  "crack / cracking": fracturing a rock
+  "green window / window": the optimal power band in mining
+  inst: instability
+  res: resistance
+  daddy: slang for a large/high-value rock
+  "split it": breaking a rock into smaller chunks before extraction
+  covalex: Covalex (hauling faction)
+  "ling family": Ling Family Hauling (faction)

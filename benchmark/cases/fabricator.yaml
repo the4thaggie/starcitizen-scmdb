@@ -1,0 +1,128 @@
+# =============================================================================
+# CASES — Fabricator branch (blueprint -> grind -> materials, multi-step orchestration)
+# Anchors: SKILL.md:18-22, instructions/fabricator.md (also loads missions.md, resources.md)
+# Hardest branch: weighted up in suite_scoring.category_weight (1.25).
+# =============================================================================
+category: fabricator
+category_weight_hint: 1.25
+
+cases:
+
+  - id: fabricator-001
+    title: "Vague 'best craftable QD' -> full orchestration"
+    difficulty: hard
+    tags: [routing, orchestration, pool_randomness, quality_table, downstream_offers]
+    scenario:
+      user_persona: "Wants the best craftable quantum drive but doesn't know the blueprint name."
+      seed_messages:
+        - "whats the best quantum drive i can craft and how do i actually get it"
+      scripted_followups:
+        - after: "agent lists craftable QD options by faction/tier and asks user to pick"
+          user_says: "the size 2 military one"
+        - after: "agent explains unlock + pool randomness + materials, then offers a grind plan"
+          user_says: "yeah give me the grind plan, im at neutral"
+    human_speak:
+      raw: "whats the best quantum drive i can craft and how do i actually get it"
+      canonical_intent: "Fabricator entry — pick a craftable QD blueprint, explain unlock + drop pool, materials/quality, then hand to grind + mining."
+      entities: { item_type: quantum_drive, size: unknown_then_2, request: "craft + acquire" }
+      common_misreads:
+        - "Routing to mining solver or pure missions instead of fabricator as the entry point."
+        - "Skipping the drop-pool randomness explanation."
+    expected_workflow:
+      branch: "Blueprint + Grind + Materials + Mining"
+      must_load: [instructions/fabricator.md]
+      also_loads: [instructions/missions.md, instructions/resources.md]
+      steps:
+        - "Item unknown -> faction_search by blueprint-type quantumdrive (size 2 after user narrows) to list options (fabricator.md:10-19)."
+        - "User picks -> blueprint_unlock to confirm faction, min_tier, min_rep, pool_size, expected_runs."
+        - "If pool_size>1, EXPLAIN the random drop pool explicitly (fabricator.md:53-54)."
+        - "blueprint_materials -> present quality-breakpoint table; explain higher_is_better:false where relevant; state practical B-grade target."
+        - "Offer grind plan -> on yes, collect current rep (Neutral) and hand to missions.md Step 2 with --faction/--target-tier."
+        - "Offer mining route -> hand to resources.md with the material list."
+      scripts_implied: [faction_search.py, blueprint_unlock.py, blueprint_materials.py, mission_grind_plan.py]
+      must_surface: [blueprint_options, faction, min_tier, min_rep, pool_size_and_expected_runs, quality_table, practical_target, grind_plan_offer, mining_offer]
+    required_context:
+      - chosen_blueprint     # resolved via faction_search menu, not open question
+      - current_rep          # before the grind plan handoff
+    defaults_allowed:
+      system: "any until grind step"
+      ship: "unknown, noted at grind/mining steps"
+      party_size: "1, noted"
+    ground_truth:
+      quantum_drive_is_craftable_type: true
+      pool_randomness_must_be_explained_if_pool_gt_1: true   # fabricator.md:53-54
+      practical_quality_target: "B-grade (~780-860)"          # fabricator.md:89-91
+      patch_line_required: "[Data: patch 4.8.1-live.11875683]"
+      checks:
+        - "Entry must be the fabricator orchestration, not a single sub-branch."
+        - "If the blueprint's pool_size>1, expected-runs / 1-in-N must be stated."
+        - "Quality table must be presented as a table (not raw JSON), with practical B-grade target."
+        - "Faction/tier/rep stated for the blueprint must be consistent across the unlock and grind steps."
+    rubric:
+      weights: { routing: 0.15, workflow_adherence: 0.25, data_fidelity: 0.15, context_gathering: 0.15 }
+      gates_in_scope: [G_patch_citation, G_raw_json, G_hallucination, G_one_question, G_open_question_where_lookup_required, G_premature_script]
+      case_specific_checks:
+        - id: fabricator-entry
+          assert: "Entered via fabricator orchestration (options menu), not a wrong sub-branch."
+          dimension: routing
+        - id: pool-randomness-explained
+          assert: "Drop-pool randomness / expected runs explained when pool_size>1."
+          dimension: workflow_adherence
+        - id: quality-table
+          assert: "Quality-breakpoint table presented as a table; practical B-grade target stated."
+          dimension: output_compliance
+        - id: downstream-offers
+          assert: "Both grind-plan and mining-route follow-ups offered; grind handoff used Neutral as current rep."
+          dimension: workflow_adherence
+        - id: cross-step-consistency
+          assert: "Faction / min_tier / min_rep consistent between unlock and grind steps."
+          dimension: data_fidelity
+    exemplars:
+      pass: "Lists S2 QD options by faction -> user picks military S2 -> 'unlocked at <tier> with <faction>; the pool has N blueprints so expect ~N Master runs for this one' -> quality table + B-grade note -> offers grind (uses Neutral) + mining route."
+      fail: "Jumps straight to a mining route, or omits the drop-pool explanation, or pastes raw blueprint JSON."
+
+  - id: fabricator-002
+    title: "Blueprint name not found -> search fallback / multiple results"
+    difficulty: medium
+    tags: [branching_rule, found_false, found_multiple, output_compliance]
+    scenario:
+      user_persona: "Has a half-remembered blueprint name."
+      seed_messages:
+        - "can you look up the materials for the 'Atlas' quantum drive blueprint"
+      scripted_followups:
+        - after: "agent reports not-found or multiple matches and offers to search by type/size"
+          user_says: "yeah its a size 1, search for it"
+    human_speak:
+      raw: "can you look up the materials for the 'Atlas' quantum drive blueprint"
+      canonical_intent: "Fabricator — blueprint lookup by name that may not exist verbatim; needs graceful search fallback."
+      entities: { blueprint_name: "Atlas", item_type: quantum_drive, size_later: 1 }
+      common_misreads:
+        - "Fabricating material requirements for a blueprint that wasn't found."
+    expected_workflow:
+      branch: "Blueprint + Grind + Materials + Mining"
+      must_load: [instructions/fabricator.md]
+      steps:
+        - "blueprint_unlock --name 'Atlas' -> if found:false, say so and offer search by type/size (fabricator.md:114-116)."
+        - "If found == 'multiple', list results[].name and ask user to pick (fabricator.md:46)."
+        - "On the size-1 narrow, re-run with --search/--size/--type, then present materials + quality table."
+      scripts_implied: [blueprint_unlock.py, blueprint_materials.py]
+      must_surface: [not_found_or_multiple_handling, refined_search_results, quality_table_after_resolution]
+    required_context: [blueprint_resolved]
+    defaults_allowed: {}
+    ground_truth:
+      patch_line_required: "[Data: patch 4.8.1-live.11875683]"
+      checks:
+        - "If 'Atlas' is not found, the agent must NOT invent materials — it must offer to search differently."
+        - "found:false must be handled per output rule (SKILL.md:93) — say so plainly, offer alternative."
+    rubric:
+      gates_in_scope: [G_patch_citation, G_raw_json, G_hallucination, G_one_question]
+      case_specific_checks:
+        - id: not-found-honest
+          assert: "Not-found / multiple handled honestly; no fabricated material list."
+          dimension: data_fidelity
+        - id: search-fallback
+          assert: "Offered/performed a type/size search to resolve, then presented materials."
+          dimension: workflow_adherence
+    exemplars:
+      pass: "'I couldn't find a blueprint named Atlas. Want me to search by type and size?' -> user gives size 1 -> presents matches, then the quality table for the chosen one."
+      fail: "Returns a confident material list for a non-existent 'Atlas QD'."
