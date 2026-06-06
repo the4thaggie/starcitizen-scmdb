@@ -135,10 +135,29 @@ Load `instructions/vision.md` and follow its intake + routing workflow.
 ## Output Rules
 
 - Always lead with the patch version, e.g. `[Data: patch 4.8.1-live.11875683]`
+- **Size context is mandatory.** Every blueprint recommendation MUST include `size` (S1/S2/S3/etc.) and MUST match the user's ship slot size.
+- **Never cross-size suggestions.** Do not recommend S2 components for S3 grind requests, or vice versa.
 - Never reproduce raw JSON verbatim; format as prose or bullets
+- Pool alternatives MUST show size info: `{"name": "TS-2", "size": "size3", "type": "quantumdrive"}`
 - If a script returns `found: false`, say so and offer a narrower search
 - If required context is missing and cannot be defaulted, ask before running the script
 - Keep answers concise and actionable
+
+## Size Enforcement Rules
+
+When presenting blueprint alternatives or pool drops:
+
+1. **Always identify ship component size first.** S1 (small), S2 (medium), S3 (large), S4 (extra-large).
+2. **Filter all blueprint queries by size.** Use `--size <n>` parameter in all lookup scripts.
+3. **Label pool alternatives with their size.** The `pool_blueprints` array now includes `{"name", "size", "type"}` objects.
+4. **Cross-reference ship configs.** See `references/s1-components.md` and `references/s3-components.md` for size-appropriate options.
+5. **Reject mixed-size pools.** If a faction pool contains multiple sizes, present them separately or ask the user to specify.
+
+**Example size matching table:**
+- S1 slot: Prospector, Aurora MR/CL/ES/LX, Reliant Kore
+- S2 slot: Freelancer, Cutlass Black, Vanguard
+- S3 slot: Constellation, Cutter, Merchantman, MOLE, Caterpillar
+- S4 slot: 600i, 890 Jump, Pegasus
 
 ## Common Pitfalls
 

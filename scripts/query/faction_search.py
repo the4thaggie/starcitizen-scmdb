@@ -151,18 +151,22 @@ def build_faction_index(missions: list, merged: dict, bp_data: dict | None) -> d
                     pool_to_faction_unlock[pool_id]["unlock_tier"] = tier
                     pool_to_faction_unlock[pool_id]["unlock_rep"] = rep
 
-    # Resolve blueprint names in pools
+    # Resolve blueprint names and sizes in pools
     for pool_id, info in pool_to_faction_unlock.items():
         pool = bp_pools.get(pool_id, {})
-        info["blueprints"] = [
-            bp_name_map.get(entry.get("blueprintRecord"), {}).get("name") or entry.get("name", "?")
-            for entry in pool.get("blueprints", [])
-        ]
-        info["blueprint_types"] = list(set(
-            bp_name_map.get(entry.get("blueprintRecord"), {}).get("type")
-            for entry in pool.get("blueprints", [])
-            if bp_name_map.get(entry.get("blueprintRecord"), {}).get("type")
-        ))
+        blueprints_info = []
+        blueprint_types = set()
+        for entry in pool.get("blueprints", []):
+            bp_rec = entry.get("blueprintRecord")
+            bp_info = bp_name_map.get(bp_rec, {})
+            name = bp_info.get("name", "?")
+            subtype = bp_info.get("subtype", "unknown")
+            bptype = bp_info.get("type", "unknown")
+            blueprints_info.append({"name": name, "size": subtype, "type": bptype})
+            if bptype:
+                blueprint_types.add(bptype)
+        info["blueprints"] = blueprints_info
+        info["blueprint_types"] = list(blueprint_types)
 
     # Attach pools to factions
     for pool_id, info in pool_to_faction_unlock.items():
@@ -230,7 +234,9 @@ def main():
             if args.size:
                 target = f"size{args.size}"
                 if bp_data:
-                    for entry_name in pool.get("blueprints", []):
+                    for bp_entry in pool.get("blueprints", []):
+                        # Handle both old format (string) and new format (dict)
+                        entry_name = bp_entry.get("name") if isinstance(bp_entry, dict) else bp_entry
                         match = next(
                             (b for b in bp_data.get("blueprints", [])
                              if b.get("productName") == entry_name and b.get("subtype") == target),

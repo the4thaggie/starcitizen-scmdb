@@ -149,6 +149,15 @@ def main():
     factions = merged["factions"]
     wiki = load_wiki_index()
 
+    # Build blueprint name->info lookup for pool size resolution
+    bp_name_map = {}
+    for b in bp_data.get("blueprints", []):
+        bp_name_map[b["guid"]] = {
+            "name": b.get("productName") or b.get("tag"),
+            "subtype": b.get("subtype"),
+            "type": b.get("type"),
+        }
+
     matches = search_blueprints(bp_data, name=args.name, search=args.search,
                                  size=args.size, bp_type=args.bp_type)
 
@@ -179,7 +188,15 @@ def main():
         pool_size = 0
         if pool:
             pool_name = pool.get("name")
-            pool_blueprints = [e.get("name") for e in pool.get("blueprints", [])]
+            # Include size info for each blueprint in pool
+            for e in pool.get("blueprints", []):
+                bp_rec = e.get("blueprintRecord")
+                bp_info = bp_name_map.get(bp_rec, {})
+                pool_blueprints.append({
+                    "name": bp_info.get("name", e.get("name", "?")),
+                    "size": bp_info.get("subtype", "unknown"),
+                    "type": bp_info.get("type", "unknown"),
+                })
             pool_size = len(pool_blueprints)
 
         min_tier = None
