@@ -65,6 +65,27 @@ def load_mining_data():
         return json.load(f)
 
 
+def normalize(value: str | None) -> str:
+    return (value or "").strip().casefold()
+
+
+def material_candidates(elements: dict, needle: str, limit: int = 5) -> list[str]:
+    n = normalize(needle)
+    candidates = []
+    seen = set()
+    for el in elements.values():
+        for key in ("materialName", "name"):
+            name = el.get(key)
+            if not name:
+                continue
+            if normalize(name).startswith(n) and name not in seen:
+                candidates.append(name)
+                seen.add(name)
+                if len(candidates) >= limit:
+                    return candidates
+    return candidates
+
+
 def crack_assessment(instability: float, resistance: float, ship_profile: dict) -> str:
     max_i = ship_profile["max_instability"]
     max_r = ship_profile["max_resistance"]
@@ -100,7 +121,7 @@ def find_locations_for_elements(mining_data: dict, target_element_guids: dict, s
             if loc.get("locationType") == "event":
                 continue
             loc_system = loc.get("system")
-            if system_filter and loc_system != system_filter:
+            if system_filter and normalize(loc_system) != normalize(system_filter):
                 continue
             for group in loc.get("groups", []):
                 if "fps" in (group.get("groupName") or "").lower():
@@ -146,8 +167,8 @@ def main():
     for name in target_names:
         match = next(
             (guid for guid, el in elements.items()
-             if name.lower() in el.get("materialName", "").lower() or
-                name.lower() in el.get("name", "").lower()),
+             if normalize(name) == normalize(el.get("materialName")) or
+                normalize(name) == normalize(el.get("name"))),
             None
         )
         if match:
@@ -161,7 +182,11 @@ def main():
     material_summaries = {}
     for name in target_names:
         if name in not_found:
-            material_summaries[name] = {"error": "not found in mining data"}
+            material_summaries[name] = {
+                "error": "not found in mining data",
+                "candidates": material_candidates(elements, name),
+                "hint": "Use the exact material name from mining data.",
+            }
             continue
         el_guid = target_element_guids[name]
         el = elements[el_guid]

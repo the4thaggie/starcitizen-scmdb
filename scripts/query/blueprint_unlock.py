@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-Returns the faction, standing tier, and blueprint pool for a named blueprint.
-The agent calls this first when a user asks about earning a blueprint.
+Returns the faction, standing tier, and blueprint pool for a blueprint.
+The agent should identify the blueprint with blueprint_lookup.py first, then pass the exact guid or name here.
 
 Usage:
+    python3 scripts/query/blueprint_lookup.py --name "Yeager"
+    python3 scripts/query/blueprint_unlock.py --guid "<guid>"
     python3 scripts/query/blueprint_unlock.py --name "Yeager"
     python3 scripts/query/blueprint_unlock.py --search "quantum drive" --size 2 --type military
 
@@ -31,6 +33,8 @@ import json
 import sys
 from pathlib import Path
 
+from blueprint_lookup import exact_lookup
+
 REPO_ROOT = Path(__file__).parent.parent.parent
 
 
@@ -57,20 +61,25 @@ def load_wiki_index() -> dict:
     return index
 
 
+def normalize(value: str | None) -> str:
+    return (value or "").strip().casefold()
+
+
 def search_blueprints(bp_data, name=None, search=None, size=None, bp_type=None):
     bps = bp_data["blueprints"]
     results = []
     for b in bps:
-        prod = (b.get("productName") or "").lower()
-        tag = (b.get("tag") or "").lower()
-        if name and name.lower() not in prod and name.lower() not in tag:
+        prod = normalize(b.get("productName"))
+        tag = normalize(b.get("tag"))
+        if name and normalize(name) != prod and normalize(name) != tag:
             continue
         if search:
-            if not any(kw in prod or kw in tag for kw in search.lower().split()):
+            terms = [normalize(kw) for kw in search.split() if kw.strip()]
+            if not all(term == prod or term == tag or term in prod or term in tag for term in terms):
                 continue
         if size and b.get("subtype") != f"size{size}":
             continue
-        if bp_type and bp_type.lower() not in (b.get("type") or "").lower():
+        if bp_type and normalize(bp_type) != normalize(b.get("type")):
             continue
         results.append(b)
     return results
@@ -136,35 +145,41 @@ def tier_path(faction_name, merged):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--name", help="Exact or partial blueprint product name")
-    parser.add_argument("--search", help="Keyword search across name and tag")
+    parser.add_argument("--name", help="Exact blueprint product name")
+    parser.add_argument("--guid", help="Exact blueprint GUID")
+    parser.add_argument("--search", help="Keyword search across name and tag (legacy/manual only)")
     parser.add_argument("--size", type=int, help="Size filter (e.g. 2)")
     parser.add_argument("--type", dest="bp_type", help="Type filter (e.g. quantumdrive)")
     args = parser.parse_args()
 
-    if not args.name and not args.search:
-        sys.exit("ERROR: provide --name or --search")
+    if not args.name and not args.search and not args.guid:
+        sys.exit("ERROR: provide --guid, --name, or --search")
 
     bp_data, merged = load_data()
     factions = merged["factions"]
     wiki = load_wiki_index()
 
-    matches = search_blueprints(bp_data, name=args.name, search=args.search,
-                                 size=args.size, bp_type=args.bp_type)
+    if args.guid or args.name:
+        matches = exact_lookup(bp_data, guid=args.guid, name=args.name)
+    else:
+        matches = search_blueprints(bp_data, name=None, search=args.search,
+                                     size=args.size, bp_type=args.bp_type)
+        if args.size or args.bp_type:
+            # search_blueprints already applied the filters above, but keep the branch explicit.
+            pass
 
     if not matches:
         print(json.dumps({"found": False, "query": vars(args)}))
         return
 
-    if len(matches) > 1 and args.name:
-        # Try exact match first
-        exact = [b for b in matches if (b.get("productName") or "").lower() == args.name.lower()]
-        if exact:
-            matches = exact
+    if len(matches) > 1 and args.name and not args.guid:
+        # Exact names can still map to multiple records; keep all exact matches.
+        matches = [b for b in matches if normalize(b.get("productName")) == normalize(args.name)
+                   or normalize(b.get("tag")) == normalize(args.name)]
 
     if len(matches) > 5:
         # Too many — return summary list for agent to narrow
-        summary = [{"name": b.get("productName") or b.get("tag"), "type": b.get("type"),
+        summary = [{"guid": b.get("guid"), "name": b.get("productName") or b.get("tag"), "type": b.get("type"),
                     "subtype": b.get("subtype"), "manufacturer": b.get("manufacturer")} for b in matches[:20]]
         print(json.dumps({"found": "multiple", "count": len(matches), "results": summary,
                           "hint": "Refine search with --size, --type, or more specific --name"}))
@@ -198,6 +213,7 @@ def main():
 
         result = {
             "found": True,
+            "guid": b.get("guid"),
             "name": bp_name,
             "manufacturer": b.get("manufacturer"),
             "type": b.get("type"),

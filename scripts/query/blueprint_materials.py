@@ -4,6 +4,7 @@ Returns crafting material requirements and quality-to-stat tables for a blueprin
 The agent calls this after blueprint_unlock.py when the user needs to know what to mine/buy.
 
 Usage:
+    python3 scripts/query/blueprint_materials.py --guid "<guid>"
     python3 scripts/query/blueprint_materials.py --name "Yeager"
 
 Output (JSON):
@@ -34,6 +35,8 @@ import argparse
 import json
 import sys
 from pathlib import Path
+
+from blueprint_lookup import exact_lookup
 
 REPO_ROOT = Path(__file__).parent.parent.parent
 
@@ -89,26 +92,38 @@ def higher_is_better(modifiers):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--name", required=True, help="Blueprint product name")
+    parser.add_argument("--name", help="Exact blueprint product name")
+    parser.add_argument("--guid", help="Exact blueprint GUID")
     args = parser.parse_args()
 
-    bp_data = load_blueprints()
-    bps = bp_data["blueprints"]
-    wiki = load_wiki_index()
+    if not args.name and not args.guid:
+        sys.exit("ERROR: provide --guid or --name")
 
-    match = next(
-        (b for b in bps if (b.get("productName") or "").lower() == args.name.lower()),
-        None
-    )
-    if not match:
-        # Partial match
-        match = next(
-            (b for b in bps if args.name.lower() in (b.get("productName") or "").lower()),
-            None
-        )
-    if not match:
-        print(json.dumps({"found": False, "name": args.name}))
+    bp_data = load_blueprints()
+    wiki = load_wiki_index()
+    matches = exact_lookup(bp_data, guid=args.guid, name=args.name)
+    if not matches:
+        print(json.dumps({"found": False, "query": vars(args)}))
         return
+    if len(matches) > 1:
+        print(json.dumps({
+            "found": "multiple",
+            "count": len(matches),
+            "results": [
+                {
+                    "guid": b.get("guid"),
+                    "name": b.get("productName") or b.get("tag"),
+                    "manufacturer": b.get("manufacturer"),
+                    "type": b.get("type"),
+                    "subtype": b.get("subtype"),
+                }
+                for b in matches
+            ],
+            "hint": "Use --guid to disambiguate exact blueprint variants",
+        }, indent=2))
+        return
+
+    match = matches[0]
 
     tier = match["tiers"][0] if match.get("tiers") else {}
     slots_out = []
@@ -188,6 +203,7 @@ def main():
 
     output = {
         "found": True,
+        "guid": match.get("guid"),
         "name": bp_name,
         "manufacturer": match.get("manufacturer"),
         "type": match.get("type"),

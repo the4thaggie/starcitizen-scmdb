@@ -13,8 +13,8 @@ Usage:
     # Find factions offering a specific mission type
     python3 scripts/query/faction_search.py --mission-type Delivery --system Stanton
 
-    # Find factions by name keyword
-    python3 scripts/query/faction_search.py --name "ling"
+    # Find a faction by exact name
+    python3 scripts/query/faction_search.py --name Covalex
 
     # Show all factions with blueprint rewards (most common agent use-case)
     python3 scripts/query/faction_search.py --has-blueprints
@@ -52,7 +52,6 @@ Output (JSON):
 import argparse
 import json
 import sys
-from collections import defaultdict
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).parent.parent.parent
@@ -78,6 +77,34 @@ def load_data():
             bp_data = json.load(f)
 
     return missions_data["missions"], merged, bp_data
+
+
+def normalize(value):
+    return (value or "").strip().casefold()
+
+
+def exact_matches(items, value, key="name"):
+    needle = normalize(value)
+    return [item for item in items if normalize(item.get(key)) == needle]
+
+
+def prefix_candidates(items, value, key="name", limit=5):
+    needle = normalize(value)
+    if not needle:
+        return []
+
+    candidates = []
+    seen = set()
+    for item in items:
+        name = item.get(key)
+        if not name:
+            continue
+        if normalize(name).startswith(needle) and name not in seen:
+            candidates.append(name)
+            seen.add(name)
+            if len(candidates) >= limit:
+                break
+    return candidates
 
 
 def build_faction_index(missions: list, merged: dict, bp_data: dict | None) -> dict:
@@ -115,8 +142,8 @@ def build_faction_index(missions: list, merged: dict, bp_data: dict | None) -> d
 
         fi = faction_index[faction]
         fi["mission_count"] += 1
-        for sys in (m.get("systems") or []):
-            fi["systems"].add(sys)
+        for sys_name in (m.get("systems") or []):
+            fi["systems"].add(sys_name)
         if m.get("missionType"):
             fi["mission_types"].add(m["missionType"])
         ms = m.get("minStanding")
@@ -193,11 +220,11 @@ def build_faction_index(missions: list, merged: dict, bp_data: dict | None) -> d
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--name", help="Keyword search in faction name (case-insensitive)")
-    parser.add_argument("--system", help="Filter to factions active in this system")
-    parser.add_argument("--mission-type", help="Filter to factions offering this mission type")
+    parser.add_argument("--name", help="Exact faction name (case-insensitive)")
+    parser.add_argument("--system", help="Filter to factions active in this system (exact match, case-insensitive)")
+    parser.add_argument("--mission-type", help="Filter to factions offering this mission type (exact match, case-insensitive)")
     parser.add_argument("--has-blueprints", action="store_true", help="Only factions with blueprint rewards")
-    parser.add_argument("--blueprint-type", help="Filter to factions whose pools contain this item type (e.g. quantumdrive)")
+    parser.add_argument("--blueprint-type", help="Filter to factions whose pools contain this exact item type (e.g. quantumdrive)")
     parser.add_argument("--size", type=int, help="Blueprint size filter (e.g. 2)")
     parser.add_argument("--limit", type=int, default=10, help="Max results (default 10)")
     args = parser.parse_args()
@@ -207,38 +234,54 @@ def main():
 
     results = list(index.values())
 
+    if (args.blueprint_type or args.size) and not bp_data:
+        sys.exit("ERROR: blueprint cache missing. Run scripts/update_cache.sh first.")
+
     # Apply filters
     if args.name:
-        results = [f for f in results if args.name.lower() in f["name"].lower()]
+        exact_name = exact_matches(results, args.name)
+        if not exact_name:
+            print(json.dumps({
+                "query": {k: v for k, v in vars(args).items() if v},
+                "found": False,
+                "count": 0,
+                "factions": [],
+                "candidates": prefix_candidates(index.values(), args.name),
+                "hint": "Use an exact faction name or filter by --system / --has-blueprints.",
+            }, indent=2))
+            return
+        results = exact_name
 
     if args.system:
-        results = [f for f in results if args.system in f["systems"]]
+        system = normalize(args.system)
+        results = [f for f in results if any(normalize(s) == system for s in f["systems"])]
 
     if args.mission_type:
-        results = [f for f in results if args.mission_type.lower() in
-                   [mt.lower() for mt in f["mission_types"]]]
+        mission_type = normalize(args.mission_type)
+        results = [f for f in results if any(normalize(mt) == mission_type for mt in f["mission_types"])]
 
     if args.has_blueprints:
         results = [f for f in results if f["has_blueprints"]]
 
     if args.blueprint_type or args.size:
+        bp_records = bp_data.get("blueprints", []) if bp_data else []
+
         def pool_matches(pool):
             if args.blueprint_type:
-                if not any(args.blueprint_type.lower() in (t or "").lower()
+                if not any(normalize(args.blueprint_type) == normalize(t)
                            for t in pool.get("blueprint_types", [])):
                     return False
             if args.size:
                 target = f"size{args.size}"
-                if bp_data:
-                    for entry_name in pool.get("blueprints", []):
-                        match = next(
-                            (b for b in bp_data.get("blueprints", [])
-                             if b.get("productName") == entry_name and b.get("subtype") == target),
-                            None
-                        )
-                        if match:
-                            return True
-                    return False
+                for entry_name in pool.get("blueprints", []):
+                    match = next(
+                        (b for b in bp_records
+                         if b.get("productName") == entry_name and normalize(b.get("subtype")) == normalize(target)),
+                        None
+                    )
+                    if match:
+                        return True
+                return False
             return True
 
         results = [f for f in results if any(pool_matches(p) for p in f.get("blueprint_pools", []))]

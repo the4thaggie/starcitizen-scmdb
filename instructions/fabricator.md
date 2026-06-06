@@ -9,14 +9,15 @@ Often the entry point that then hands off to missions.md (grind) and resources.m
 
 ## Step 0 — If the user doesn't know which item they want
 
-If the user says something like "what's the best craftable quantum drive?" or "what can I unlock with Covalex?", run a faction search first to show options:
+If the user says something like "what's the best craftable quantum drive?" or "what can I unlock with Covalex?", first use the exact blueprint lookup helper to identify the record:
 
 ```bash
-# What S2 quantum drives are craftable and which faction unlocks each?
-python3 scripts/query/faction_search.py --blueprint-type quantumdrive --size 2
+python3 scripts/query/blueprint_lookup.py --name "<exact_item_name>"
+# or, if already known:
+python3 scripts/query/blueprint_lookup.py --guid "<guid>"
 ```
 
-Use `factions[].blueprint_pools[].blueprints[]` to list the options with faction and unlock tier, then ask the user to pick one before proceeding to Step 1.
+If the exact lookup fails because the user only gave a vague description, use `faction_search.py` as a *menu generator* (not as a match guesser) and have them pick the exact GUID before proceeding. Do not guess from partial name matches.
 
 ---
 
@@ -24,31 +25,25 @@ Use `factions[].blueprint_pools[].blueprints[]` to list the options with faction
 
 Run:
 ```bash
-python3 scripts/query/blueprint_unlock.py --name "<item_name>"
+python3 scripts/query/blueprint_unlock.py --guid "<guid>"
 ```
 
-If the user is vague (e.g. "best S2 military quantum drive"), add filters:
-```bash
-python3 scripts/query/blueprint_unlock.py --search "quantum drive" --size 2 --type quantumdrive
-```
+If you only have the exact item name, resolve it first with `blueprint_lookup.py`. Do not use partial-name search for the main workflow.
 
 **Output keys:**
-
-| Key | Use |
-|---|---|
-| `found` | If `false` — tell user blueprint not found, offer to search differently |
-| `found == "multiple"` | List `results[].name` and ask user to pick one |
-| `name` | Confirm the blueprint |
-| `manufacturer` | Include in answer |
-| `type` / `subtype` | Confirm item type and size |
-| `faction` | The faction whose missions unlock this blueprint |
-| `min_tier` | Standing tier required to receive the blueprint |
-| `min_rep` | Rep threshold for `min_tier` |
-| `pool_name` | Internal pool name (informational) |
-| `pool_size` | How many blueprints are in the drop pool |
-| `pool_blueprints[]` | The full list of possible drops from the pool |
-| `expected_runs_for_this_bp` | Equal to `pool_size` — expected Master-tier runs to get this specific blueprint |
-| `faction_tiers[]` | Full standing ladder for this faction — use in grind planning |
+- `found`: if `false`, tell the user the blueprint wasn't found; if `"multiple"`, list the candidate GUIDs and ask them to pick one
+- `guid`: the stable blueprint identifier — prefer this for all downstream steps
+- `name`: confirm the blueprint
+- `manufacturer`: include in the answer
+- `type` / `subtype`: confirm item type and size
+- `faction`: the faction whose missions unlock this blueprint
+- `min_tier`: standing tier required to receive the blueprint
+- `min_rep`: rep threshold for `min_tier`
+- `pool_name`: internal pool name (informational)
+- `pool_size`: how many blueprints are in the drop pool
+- `pool_blueprints[]`: the full list of possible drops from the pool
+- `expected_runs_for_this_bp`: equal to `pool_size` — expected Master-tier runs to get this specific blueprint
+- `faction_tiers[]`: full standing ladder for this faction — use in grind planning
 
 **If `pool_size > 1`:** Explain the random drop pool explicitly:
 > "The [pool_name] pool contains [pool_size] blueprints at equal weight. You have a 1-in-[pool_size] chance of getting [name] per Master-tier mission completion. Expect approximately [expected_runs_for_this_bp] runs at [min_tier] before you receive it."
@@ -59,7 +54,7 @@ python3 scripts/query/blueprint_unlock.py --search "quantum drive" --size 2 --ty
 
 Run:
 ```bash
-python3 scripts/query/blueprint_materials.py --name "<name>"
+python3 scripts/query/blueprint_materials.py --guid "<guid>"
 ```
 
 **Output keys:**

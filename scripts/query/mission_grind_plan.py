@@ -140,8 +140,11 @@ def best_mission_at_tier(missions: list, faction: str, tier_name: str, system: s
     best = max(candidates, key=lambda m: m.get("estRepPerHour", 0))
     mission_type = best.get("missionType", "")
     return {
+        "id": best.get("id"),
         "title": best.get("title"),
+        "debug_name": best.get("debugName"),
         "mission_type": mission_type,
+        "systems": best.get("systems"),
         "rep_per_run": sum(g["amount"] for g in (best.get("factionRepGain") or []) if g.get("amount")),
         "uec_per_run": best.get("rewardUEC"),
         "time_minutes": best.get("timeToCompleteMinutes"),

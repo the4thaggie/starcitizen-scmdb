@@ -8,12 +8,12 @@ Material Acquisition Plan — given a blueprint and mining setup, computes:
   5. Full expedition economics summary
 
 Usage:
-    python3 scripts/query/material_acquisition_plan.py \\
-        --blueprint "Yeager" \\
-        --ship prospector \\
-        --location "Lagrange A" \\
-        --system Stanton \\
-        --refinery-pref yield \\
+    python3 scripts/query/material_acquisition_plan.py \
+        --guid "<guid>" \
+        --ship prospector \
+        --location "Lagrange A" \
+        --system Stanton \
+        --refinery-pref yield \
         --refine-what selective
 
 Options:
@@ -37,7 +37,38 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+from blueprint_lookup import exact_lookup
+
 REPO_ROOT = Path(__file__).parent.parent.parent
+
+
+def normalize(value: str | None) -> str:
+    return (value or "").strip().casefold()
+
+
+def canonical_material_name(value: str | None) -> str:
+    n = normalize(value)
+    for suffix in (" (ore)", " ore", " (raw)", " raw"):
+        if n.endswith(suffix):
+            return n[: -len(suffix)].strip()
+    return n
+
+
+def material_candidates(items: list[dict], value: str, key_names: tuple[str, ...] = ("materialName", "name"), limit: int = 5) -> list[str]:
+    needle = canonical_material_name(value)
+    candidates = []
+    seen = set()
+    for item in items:
+        for key in key_names:
+            name = item.get(key)
+            if not name:
+                continue
+            if canonical_material_name(name) == needle and name not in seen:
+                candidates.append(name)
+                seen.add(name)
+                if len(candidates) >= limit:
+                    return candidates
+    return candidates
 
 # ── Constants (game-verified approximations) ──────────────────────────────────
 
@@ -89,17 +120,11 @@ def load_wiki_ships() -> dict:
 
 # ── Blueprint helpers ─────────────────────────────────────────────────────────
 
-def get_blueprint_slots(bp_name: str, bp_data: dict) -> list[dict]:
-    bps = bp_data["blueprints"]
-    match = next(
-        (b for b in bps if (b.get("productName") or "").lower() == bp_name.lower()),
-        None,
-    ) or next(
-        (b for b in bps if bp_name.lower() in (b.get("productName") or "").lower()),
-        None,
-    )
-    if not match:
+def get_blueprint_slots(*, guid: str | None, name: str | None, bp_data: dict) -> list[dict]:
+    matches = exact_lookup(bp_data, guid=guid, name=name)
+    if len(matches) != 1:
         return []
+    match = matches[0]
     tier = match["tiers"][0] if match.get("tiers") else {}
     slots = []
     for slot in tier.get("slots", []):
@@ -131,8 +156,8 @@ def get_concentration(material_name: str, mining_data: dict) -> dict | None:
     # Find element GUID
     el_guid = next(
         (guid for guid, el in elements.items()
-         if material_name.lower() in (el.get("materialName") or "").lower()
-         or material_name.lower() in (el.get("name") or "").lower()),
+         if canonical_material_name(material_name) == canonical_material_name(el.get("materialName"))
+         or canonical_material_name(material_name) == canonical_material_name(el.get("name"))),
         None,
     )
     if not el_guid:
@@ -182,11 +207,11 @@ def get_terminal_yield_bonuses(terminal_name: str, materials: list[str],
     """Return {material_raw_name: yield_bonus_pct} for a given refinery terminal."""
     bonuses = {}
     for row in yields_data:
-        if terminal_name.lower() not in (row.get("terminal_name") or "").lower():
+        if normalize(terminal_name) != normalize(row.get("terminal_name")):
             continue
         comm = row.get("commodity_name", "")
         for mat in materials:
-            if mat.lower() in comm.lower():
+            if canonical_material_name(mat) == canonical_material_name(comm):
                 # Use weekly average if available, else current
                 val = row.get("value_week") or row.get("value") or 0
                 bonuses[mat] = val
@@ -231,13 +256,13 @@ def fetch_live_prices(materials: list[str], system: str | None) -> dict:
 
     def raw_name(mat):
         for n, c in comm_index.items():
-            if mat.lower() in n.lower() and c.get("is_raw", 0) == 1:
+            if canonical_material_name(mat) == canonical_material_name(n) and c.get("is_raw", 0) == 1:
                 return n
         return None
 
     def refined_name(mat):
         candidates = [n for n, c in comm_index.items()
-                      if mat.lower() in n.lower().replace(" ore","").replace(" (raw)","").replace(" (ore)","")
+                      if canonical_material_name(mat) == canonical_material_name(n)
                       and c.get("is_raw", 0) == 0]
         return min(candidates, key=len) if candidates else None
 
@@ -323,6 +348,7 @@ def score_refinery(terminal: dict, bonuses: dict, methods: list,
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--blueprint", required=True)
+    parser.add_argument("--guid", help="Exact blueprint GUID")
     parser.add_argument("--ship", default="prospector")
     parser.add_argument("--location", default=None, help="Mining location name")
     parser.add_argument("--system", default="Stanton")
@@ -354,7 +380,28 @@ def main():
         print(f"WARNING: method '{args.method}' not found. Available: {list(methods_by_name)}", file=sys.stderr)
 
     # ── Blueprint slots ──
-    slots = get_blueprint_slots(args.blueprint, bp_data)
+    blueprint_matches = exact_lookup(bp_data, guid=args.guid, name=args.blueprint)
+    if not blueprint_matches:
+        print(json.dumps({"error": f"Blueprint '{args.blueprint}' not found."}))
+        return
+    if len(blueprint_matches) > 1:
+        print(json.dumps({
+            "found": "multiple",
+            "count": len(blueprint_matches),
+            "results": [
+                {
+                    "guid": b.get("guid"),
+                    "name": b.get("productName") or b.get("tag"),
+                    "manufacturer": b.get("manufacturer"),
+                    "type": b.get("type"),
+                    "subtype": b.get("subtype"),
+                }
+                for b in blueprint_matches
+            ],
+            "hint": "Use --guid to disambiguate exact blueprint variants",
+        }, indent=2))
+        return
+    slots = get_blueprint_slots(guid=args.guid, name=args.blueprint, bp_data=bp_data)
     if not slots:
         print(json.dumps({"error": f"Blueprint '{args.blueprint}' not found."}))
         return
@@ -597,6 +644,7 @@ def main():
 
     print(json.dumps({
         "blueprint": args.blueprint,
+        "blueprint_guid": args.guid,
         "ship": args.ship,
         "ship_cargo_scu": ship_cargo,
         "location": args.location,

@@ -23,9 +23,9 @@ Ask if not clear from context:
 | Item | Question | Default |
 |---|---|---|
 | `ship` | "Which ship are you in — Prospector, Golem, or MOLE?" | Must ask |
-| `laser` | "What mining laser are you running?" | Offer list (Step 2a) |
-| `modules` | "What modules do you have installed, if any?" | None — continue without |
-| `rock_material` | "What material are you targeting, or what's the hardest element in the rock?" | Must ask for crackability |
+| `laser` | "What mining laser are you running?" | Must be exact; use Step 2a if unknown |
+| `modules` | "What modules do you have installed, if any?" | Exact names only; continue without if none |
+| `rock_material` | "What material are you targeting, or what's the hardest element in the rock?" | Must be exact for crackability |
 | `rock_mass` | "What's the rock mass? (Check your ship's scanner)" | 3000 (small), 8000 (medium), 20000 (large) |
 | `gadgets` | "Are you using any gadgets?" | No — never assume gadget use |
 

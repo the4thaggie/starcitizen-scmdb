@@ -10,7 +10,7 @@ Handles: mining location lookup, material availability by system, crack difficul
 
 | Item | Question | Default |
 |---|---|---|
-| `materials` | "Which material(s) are you looking for?" | Must have — if called from fabricator.md, already known |
+| `materials` | "Which material(s) are you looking for?" | Must have — if called from fabricator.md, already known; use exact material names |
 | `system` | "Which system are you currently in?" | No filter — show all, flag it |
 | `ship` | "What mining ship are you flying?" | "unknown" — conservative profile used, flag it |
 
@@ -84,6 +84,9 @@ After the route, summarize material properties:
 **If system not specified:**
 Run without `--system` and show the full list, but note:
 > "I'm showing all systems. Which system are you in? I can narrow this to reduce travel."
+
+**If a material name is unknown or only partially remembered:**
+Ask for the exact material name from mining data. Do not guess or substring-match in the main flow.
 
 **If ship is "unknown":**
 > "I'm using conservative estimates. If you tell me your mining ship, I can give more accurate crack assessments."

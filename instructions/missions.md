@@ -76,6 +76,22 @@ python3 scripts/query/mission_grind_plan.py \
   --party-size <n>
 ```
 
+If you need to resolve a specific mission by name or identifier, use the exact lookup helper instead of web search:
+
+```bash
+python3 scripts/query/mission_lookup.py --id <uuid>
+python3 scripts/query/mission_lookup.py --debug-name <debugName>
+python3 scripts/query/mission_lookup.py --title "<exact title>"
+```
+
+Use the lookup helper when the user asks for:
+- a source mission record
+- a mission's exact identifier
+- a system-specific variant
+- confirmation that a title is duplicated across systems
+
+Do **not** use web search or browser sniffing for mission identity.
+
 **Output keys to use:**
 
 | Key | Use |
@@ -84,7 +100,10 @@ python3 scripts/query/mission_grind_plan.py \
 | `target_tier` | Confirm the goal |
 | `target_rep` | Total rep required |
 | `tiers[].from_tier → to_tier` | One row per tier in the grind table |
-| `tiers[].best_mission.title` | Recommended mission at that tier |
+| `tiers[].best_mission.id` | Exact mission record identifier from SCMDB JSON |
+| `tiers[].best_mission.title` | Recommended mission title at that tier |
+| `tiers[].best_mission.debug_name` | Internal mission slug for deterministic matching |
+| `tiers[].best_mission.systems` | Systems where the mission exists |
 | `tiers[].best_mission.rep_per_run` | Rep earned per completion |
 | `tiers[].best_mission.uec_per_hour` | Income while grinding |
 | `tiers[].best_mission.type_note` | Community context for that mission type |
@@ -95,6 +114,12 @@ python3 scripts/query/mission_grind_plan.py \
 | `total_est_hours` | Total time estimate |
 | `batching_notes[]` | Surface all of these to the user |
 | `community_tips[]` | Surface all of these to the user |
+
+**Mission identity rule:**
+- Treat the mission `id` as the authoritative identifier.
+- Never infer a web page URL from title alone.
+- If a link is needed, only show it when the exact `id` ↔ URL mapping has already been verified from deterministic data.
+- Otherwise show the mission id and title only.
 
 ---
 

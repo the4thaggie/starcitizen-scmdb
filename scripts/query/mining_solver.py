@@ -80,29 +80,58 @@ def load_mining_data() -> dict:
         return json.load(f)
 
 
+def _name_candidates(items: list[dict], name: str) -> list[dict]:
+    needle = _canon(name)
+    return [item for item in items if _canon(item.get("name")).startswith(needle)]
+
+
+def _canon(value: str | None) -> str:
+    return (value or "").strip().casefold()
+
+
+def _material_candidates(elements: dict, needle: str) -> list[str]:
+    n = _canon(needle)
+    seen = set()
+    out = []
+    for el in elements.values():
+        for key in ("materialName", "name"):
+            name = el.get(key)
+            if name and _canon(name).startswith(n) and name not in seen:
+                out.append(name)
+                seen.add(name)
+    return out
+
+
 def find_laser(equipment: dict, name: str) -> dict | None:
-    return next((l for l in equipment["lasers"] if name.lower() in l["name"].lower()), None)
+    lasers = equipment["lasers"]
+    exact = [l for l in lasers if _canon(l.get("name")) == _canon(name)]
+    if exact:
+        return exact[0]
+    return None
 
 
-def find_modules(equipment: dict, names: list[str]) -> list[dict]:
+def find_modules(equipment: dict, names: list[str]) -> tuple[list[dict], list[dict]]:
     result = []
+    missing = []
     all_mods = equipment["passive_modules"] + equipment["active_modules"]
     for name in names:
-        m = next((m for m in all_mods if name.lower() in m["name"].lower()), None)
-        if m:
-            result.append(m)
-        else:
-            result.append({"name": name, "error": "not found"})
-    return result
+        exact = [m for m in all_mods if _canon(m.get("name")) == _canon(name)]
+        if exact:
+            result.append(exact[0])
+            continue
+        missing.append({
+            "name": name,
+            "candidates": [m["name"] for m in _name_candidates(all_mods, name)[:5]],
+        })
+    return result, missing
 
 
 def find_element(mining_data: dict, material: str) -> dict | None:
     elements = mining_data["mineableElements"]
-    for guid, el in elements.items():
-        mat = el.get("materialName", "") or ""
-        name = el.get("name", "") or ""
-        if material.lower() in mat.lower() or material.lower() in name.lower():
-            return el
+    exact = [el for el in elements.values() if _canon(el.get("materialName")) == _canon(material)
+             or _canon(el.get("name")) == _canon(material)]
+    if exact:
+        return exact[0]
     return None
 
 
@@ -316,8 +345,8 @@ def recommend_loadout(equipment: dict, element: dict, ship_key: str) -> dict:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ship", required=True, help="prospector | golem | mole")
-    parser.add_argument("--laser", help="Laser name (partial match)")
-    parser.add_argument("--modules", nargs="*", default=[], help="Module names (partial match)")
+    parser.add_argument("--laser", help="Exact laser name")
+    parser.add_argument("--modules", nargs="*", default=[], help="Exact module names")
     parser.add_argument("--rock-mass", type=float, default=3000, help="Rock mass (kg)")
     parser.add_argument("--rock-material", help="Primary rock material (for element physics)")
     parser.add_argument("--list-equipment", action="store_true", help="List available equipment for the ship")
@@ -369,14 +398,19 @@ def main():
     element = None
     if args.rock_material:
         element = find_element(mining_data, args.rock_material)
-        if not element:
-            print(json.dumps({"error": f"Material '{args.rock_material}' not found in mining data."}))
-            return
 
     # --- Recommend mode ---
     if args.recommend:
-        if not element:
+        if not args.rock_material:
             print(json.dumps({"error": "Provide --rock-material for recommendations."}))
+            return
+        if not element:
+            candidates = _material_candidates(mining_data["mineableElements"], args.rock_material)[:5]
+            print(json.dumps({
+                "error": f"Material '{args.rock_material}' not found in mining data.",
+                "candidates": candidates,
+                "hint": "Use the exact material name from mining data.",
+            }))
             return
         rec = recommend_loadout(equipment, element, ship_key)
         print(json.dumps({"mode": "recommend", "ship": ship,
@@ -393,18 +427,26 @@ def main():
 
     laser = find_laser(equipment, args.laser)
     if not laser:
-        names = [l["name"] for l in equipment["lasers"]]
-        print(json.dumps({"error": f"Laser '{args.laser}' not found.", "available": names}))
+        candidates = [l["name"] for l in _name_candidates(equipment["lasers"], args.laser)[:5]]
+        print(json.dumps({
+            "error": f"Laser '{args.laser}' not found.",
+            "candidates": candidates,
+            "hint": "Use the exact laser name or run --list-equipment.",
+        }))
         return
 
-    modules = find_modules(equipment, args.modules) if args.modules else []
-    missing = [m["name"] for m in modules if "error" in m]
+    modules, missing = find_modules(equipment, args.modules) if args.modules else ([], [])
 
     # Validate module slots
     warnings = []
     if missing:
-        warnings.append(f"Modules not found: {missing}")
-    valid_modules = [m for m in modules if "error" not in m]
+        print(json.dumps({
+            "error": "One or more modules were not found by exact name.",
+            "missing": missing,
+            "hint": "Use exact module names from --list-equipment.",
+        }))
+        return
+    valid_modules = modules
     if len(valid_modules) > laser["module_slots"]:
         warnings.append(
             f"{laser['name']} has {laser['module_slots']} module slot(s) — "
@@ -414,7 +456,12 @@ def main():
 
     # Need element for net stats
     if not element:
-        print(json.dumps({"error": "Provide --rock-material to compute net stats."}))
+        candidates = _material_candidates(mining_data["mineableElements"], args.rock_material)[:5]
+        print(json.dumps({
+            "error": f"Material '{args.rock_material}' not found in mining data.",
+            "candidates": candidates,
+            "hint": "Use the exact material name from mining data.",
+        }))
         return
 
     gp = equipment["global_params"]
