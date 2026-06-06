@@ -1,139 +1,105 @@
 # starcitizen-scmdb
 
-Patch-aware Star Citizen SCMDB skill for missions, blueprints, mining, and grind planning.
+A simple Star Citizen helper for missions, blueprints, mining, and grind planning.
 
-## What this is
+## Elevator pitch
 
-This repo packages a reusable skill that answers Star Citizen questions from local, patch-versioned SCMDB data.
-It is designed to be deterministic:
+If you want Star Citizen answers without guessing, this skill uses local SCMDB data and exact lookups.
 
-- exact lookup first
-- script-backed answers
-- stable identifiers over fuzzy titles
-- no web guessing when the local JSON already has the answer
-
-If a question depends on SCMDB data, this skill should use the query scripts in `scripts/query/` instead of ad hoc searching.
-
-## What it covers
-
-- mission and reputation grind planning
+It helps with:
+- missions and reputation grind plans
 - blueprint unlocks and materials
-- mining locations and acquisition plans
-- mining solver / loadout questions
-- HUD / screenshot reading for Star Citizen UI questions
+- mining spots and acquisition plans
+- mining solver and loadout questions
+- screenshots of Star Citizen UI
 
-## Quick start
+## Start here
 
-1. Install the skill in your framework of choice.
-2. Make sure the repo is discoverable as a skill directory.
-3. Ask a Star Citizen question that maps to one of the supported flows.
-4. When the skill asks for an exact name or identifier, give the exact value or use the discovery/menu path first.
+If you are new to Linux, follow these 4 steps:
+
+1. Open a terminal.
+2. Clone the repo.
+3. Copy the skill into the framework you use.
+4. Ask your Star Citizen question.
+
+### Step 1: clone the repo
+
+```bash
+cd ~
+git clone https://github.com/the4thaggie/starcitizen-scmdb.git
+cd starcitizen-scmdb
+```
+
+What this does:
+- `cd ~` goes to your home folder
+- `git clone ...` downloads the repo
+- `cd starcitizen-scmdb` opens the downloaded folder
+
+If you already cloned it before, just go to the folder you already have.
+
+### Step 2: install the skill in your framework
+
+Use the copy block for the framework you use below.
+
+### Step 3: ask a question
+
+If the skill asks for an exact name or identifier, give the exact value.
+If you only know part of it, use the discovery/menu path first.
 
 ## Install by framework
+
+Each framework below gets one copy/paste block. Assume the repo is already cloned to `~/starcitizen-scmdb`.
 
 ### Hermes
 
 Hermes discovers skills from `~/.hermes/skills/`.
 
-Install this repo as:
-
 ```bash
 mkdir -p ~/.hermes/skills/starcitizen-scmdb
-cp -R <path-to-cloned-repo>/* ~/.hermes/skills/starcitizen-scmdb/
+cp -R ~/starcitizen-scmdb/* ~/.hermes/skills/starcitizen-scmdb/
 ```
-
-If you already have the repo checked out locally, point Hermes at that folder or mirror it into `~/.hermes/skills/starcitizen-scmdb/`.
 
 ### OpenClaw
 
-OpenClaw loads skills from these locations, highest precedence first:
-
-- `<workspace>/skills`
-- `<workspace>/.agents/skills`
-- `~/.agents/skills`
-- `~/.openclaw/skills`
-
-Install a local copy with:
+OpenClaw loads skills from its standard user skill path:
 
 ```bash
-openclaw skills install <path-to-cloned-repo> --as starcitizen-scmdb
-```
-
-For shared use across local agents:
-
-```bash
-openclaw skills install <path-to-cloned-repo> --global
+mkdir -p ~/.openclaw/skills/starcitizen-scmdb
+cp -R ~/starcitizen-scmdb/* ~/.openclaw/skills/starcitizen-scmdb/
 ```
 
 ### Claude Code
 
-Claude Code discovers skills from:
-
-- `<repo>/.claude/skills/<name>/SKILL.md`
-- `~/.claude/skills/<name>/SKILL.md`
-
-Recommended project install:
-
-```bash
-mkdir -p .claude/skills/starcitizen-scmdb
-cp -R <path-to-cloned-repo>/* .claude/skills/starcitizen-scmdb/
-```
-
-Recommended user-global install:
+Claude Code discovers skills from `~/.claude/skills/`:
 
 ```bash
 mkdir -p ~/.claude/skills/starcitizen-scmdb
-cp -R <path-to-cloned-repo>/* ~/.claude/skills/starcitizen-scmdb/
+cp -R ~/starcitizen-scmdb/* ~/.claude/skills/starcitizen-scmdb/
 ```
 
 ### Claude
 
 The consumer Claude app does not use filesystem skills in the same way Claude Code does.
-If you are working in Claude Code, use the install steps above.
+If you are working in Claude Code, use the install step above.
 If you are only using Claude in the web or desktop app, treat this README as the workflow reference and paste the relevant instructions into the conversation when needed.
 
 ### OpenAI Codex / Codex CLI
 
-Codex discovers skills from repository and user locations, especially:
-
-- `$CWD/.agents/skills/<name>/SKILL.md`
-- `$REPO_ROOT/.agents/skills/<name>/SKILL.md`
-- `$HOME/.agents/skills/<name>/SKILL.md`
-- `/etc/codex/skills/<name>/SKILL.md` for system-wide installs
-
-Recommended project install:
-
-```bash
-mkdir -p .agents/skills/starcitizen-scmdb
-cp -R <path-to-cloned-repo>/* .agents/skills/starcitizen-scmdb/
-```
-
-Recommended user-global install:
+Codex discovers skills from its standard user skill path:
 
 ```bash
 mkdir -p ~/.agents/skills/starcitizen-scmdb
-cp -R <path-to-cloned-repo>/* ~/.agents/skills/starcitizen-scmdb/
+cp -R ~/starcitizen-scmdb/* ~/.agents/skills/starcitizen-scmdb/
 ```
 
 ### OpenCode
 
-OpenCode discovers skills from:
-
-- `.opencode/skills/<name>/SKILL.md`
-- `~/.config/opencode/skills/<name>/SKILL.md`
-- `.claude/skills/<name>/SKILL.md`
-- `~/.claude/skills/<name>/SKILL.md`
-- `.agents/skills/<name>/SKILL.md`
-- `~/.agents/skills/<name>/SKILL.md`
-
-Recommended project-local install:
+OpenCode discovers skills from `~/.config/opencode/skills/`:
 
 ```bash
-mkdir -p .opencode/skills/starcitizen-scmdb
-cp -R <path-to-cloned-repo>/* .opencode/skills/starcitizen-scmdb/
+mkdir -p ~/.config/opencode/skills/starcitizen-scmdb
+cp -R ~/starcitizen-scmdb/* ~/.config/opencode/skills/starcitizen-scmdb/
 ```
-
-If you already maintain Claude or agent-style skill folders, you can drop the same `SKILL.md` there instead.
 
 ## How to use it well
 
@@ -180,20 +146,16 @@ What it does need is:
 - strong JSON / identifier discipline
 - low hallucination rate on exact names and IDs
 
-### Best OpenRouter free options right now
+### Specific free model paths
 
-Use these if your framework can point at OpenRouter.
-
-- `openrouter/free`
-  - safest default if you want the router to choose a free model that fits the task
-  - good when you do not want to hardcode a provider
+If your framework can use OpenRouter, pick one of these exact model paths:
 
 - `openai/gpt-oss-120b:free`
   - best general-purpose free pick for reasoning, structured answers, and tool use
-  - strong choice for mission/blueprint/grind planning
+  - strong choice for mission, blueprint, and grind planning
 
 - `poolside/laguna-m.1:free`
-  - strongest fit for coding-agent style workflows
+  - strong for coding-agent style workflows
   - good for longer reasoning chains and tool-using tasks
 
 - `z-ai/glm-4.5-air:free`
@@ -201,8 +163,8 @@ Use these if your framework can point at OpenRouter.
   - good balance of reasoning and responsiveness
 
 - `nvidia/nemotron-3-super:free`
-  - good general reasoning option
-  - useful when you want a free fallback with broad capability
+  - useful free fallback with broad capability
+  - good when you want a second option
 
 ### Capability priority
 
