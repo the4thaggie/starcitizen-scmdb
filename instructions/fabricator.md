@@ -18,6 +18,8 @@ python3 scripts/query/faction_search.py --blueprint-type quantumdrive --size 2
 
 Use `factions[].blueprint_pools[].blueprints[]` to list the options with faction and unlock tier, then ask the user to pick one before proceeding to Step 1.
 
+**Always filter by size when presenting options.** The blueprints array now includes `{"name", "size", "type"}` objects.
+
 ---
 
 ## Step 1 — Identify the blueprint
@@ -46,12 +48,14 @@ python3 scripts/query/blueprint_unlock.py --search "quantum drive" --size 2 --ty
 | `min_rep` | Rep threshold for `min_tier` |
 | `pool_name` | Internal pool name (informational) |
 | `pool_size` | How many blueprints are in the drop pool |
-| `pool_blueprints[]` | The full list of possible drops from the pool |
+| `pool_blueprints[]` | List of pool drops with `{"name", "size", "type"}` — FILTER BY SIZE when presenting |
 | `expected_runs_for_this_bp` | Equal to `pool_size` — expected Master-tier runs to get this specific blueprint |
 | `faction_tiers[]` | Full standing ladder for this faction — use in grind planning |
 
 **If `pool_size > 1`:** Explain the random drop pool explicitly:
 > "The [pool_name] pool contains [pool_size] blueprints at equal weight. You have a 1-in-[pool_size] chance of getting [name] per Master-tier mission completion. Expect approximately [expected_runs_for_this_bp] runs at [min_tier] before you receive it."
+
+**Pool alternatives MUST be filtered by size.** Only present items matching the target component slot.
 
 ---
 
@@ -113,11 +117,12 @@ If yes → follow `instructions/resources.md` workflow, passing all material nam
 
 **If blueprint not found:**
 > "I couldn't find a blueprint named '[name]'. Do you know the exact SCMDB name, or would you like me to search by type/size?"
+
 Then re-run with `--search` and broader terms.
 
 **If pool contains items other than the target:**
-List the other items in the pool. The user may be happy to collect them too:
-> "The same pool also drops: [other items]. These may be useful — you'll collect some while grinding for [name]."
+List the other items in the pool **filtered by size only**. Items in other sizes are irrelevant for the user's ship:
+> "The same pool also drops (S3 only): [Balandin, TS-2, Parapet]. Items in other sizes won't fit your ship."
 
 **If `faction` is null (blueprint has no faction unlock):**
 > "This blueprint doesn't appear to be tied to a faction mission pool. It may be unlocked through a different mechanic — check SCMDB directly for this one."
